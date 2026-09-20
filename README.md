@@ -12,6 +12,9 @@ reason to blow the whole thing up and start again richer.
 
 ![the island](docs/screenshot.png)
 
+![structures](docs/structures.png)
+*Six kinds of buried find, uncovered and still mounded. Walk within a few tiles to spot one.*
+
 ![the moon](docs/moon.png)
 *Rebirth five times and the shard flies to the Moon: low gravity, Earth overhead, and ore worth two hundred times what the home island pays.*
 
@@ -110,6 +113,9 @@ automatically.
 
 - Forty-two ores across six dimensions, each with its own spawn weights per depth
 - Node health, cracking, damage numbers and respawn timers
+- Six buried structures - fossils, geodes, abandoned mineshafts, crystal
+  formations, meteorites and void rifts - that appear as loose mounds until
+  you walk close, are far tougher than ordinary rock, and pay in one lump
 - Mining levels and experience, feeding power and movement speed
 - Carry capacity with overflow auto-selling so idle progress never fully stalls
 - Warehouses with per-ore keep/sell selection, feeding crafting and contracts
@@ -122,10 +128,12 @@ automatically.
 - Sixteen rebirth milestones keyed to rebirth count alone, five of which
   unlock a dimension
 - Forty-one achievements paying out cash and cores
-- Repeatable guild contracts with a reroll cost
+- Repeatable guild contracts with a reroll cost, restricted to ore you can
+  actually reach
 - Twelve prestige perks including Head Start, which seeds the next run with gear
 - An eleven-step tutorial driven by real game state, skippable and replayable
-- Build and bag panels illustrated with the same sprites the world draws
+- Every panel illustrated with the same sprites the world draws: machines,
+  ore, equipment coloured by material, dimensions and depth layers
 - Save export/import, zoom, mute, mobile controls
 
 ## Layout

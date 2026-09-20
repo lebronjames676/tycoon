@@ -554,6 +554,163 @@
   };
 
   /* ---------------------------------------------------------
+     Structures - rare finds, drawn bigger and stranger than ore
+     --------------------------------------------------------- */
+  var STRUCT = {};
+
+  STRUCT.fossil = function (ctx, x, y, t) {
+    ctx.fillStyle = '#6b6153';                                  /* matrix */
+    ctx.fillRect(x + 1, y + 6, 18, 9);
+    ctx.fillStyle = '#7d7263';
+    ctx.fillRect(x + 2, y + 6, 16, 2);
+    ctx.fillStyle = '#e8e2cf';                                  /* skull */
+    ctx.fillRect(x + 3, y + 7, 6, 5);
+    ctx.fillRect(x + 4, y + 12, 4, 2);
+    ctx.fillStyle = '#4a4238';
+    ctx.fillRect(x + 4, y + 9, 2, 2);
+    ctx.fillRect(x + 7, y + 9, 1, 2);
+    ctx.fillStyle = '#e8e2cf';                                  /* spine + ribs */
+    ctx.fillRect(x + 9, y + 9, 9, 2);
+    for (var i = 0; i < 4; i++) {
+      ctx.fillRect(x + 11 + i * 2, y + 11, 1, 3);
+      ctx.fillRect(x + 11 + i * 2, y + 7, 1, 2);
+    }
+    ctx.fillStyle = '#c9c1a8';
+    ctx.fillRect(x + 9, y + 10, 9, 1);
+  };
+
+  STRUCT.geode = function (ctx, x, y, t) {
+    ctx.fillStyle = '#5d5a52';
+    ctx.fillRect(x + 2, y + 4, 16, 12);
+    ctx.fillRect(x + 4, y + 2, 12, 14);
+    ctx.fillStyle = '#6e6a60';
+    ctx.fillRect(x + 4, y + 2, 12, 2);
+    ctx.fillStyle = '#2a2830';                                  /* opened half */
+    ctx.fillRect(x + 6, y + 5, 9, 9);
+    var glow = 0.6 + 0.4 * Math.sin(t * 3);
+    ctx.fillStyle = '#a678e8';
+    ctx.globalAlpha = glow;
+    ctx.fillRect(x + 7, y + 6, 7, 7);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#e0d0ff';
+    ctx.fillRect(x + 8, y + 7, 2, 2);
+    ctx.fillRect(x + 11, y + 9, 2, 3);
+    ctx.fillRect(x + 9, y + 11, 1, 2);
+  };
+
+  STRUCT.shaft = function (ctx, x, y, t) {
+    ctx.fillStyle = '#0a0c10';                                  /* the hole */
+    ctx.fillRect(x + 4, y + 6, 12, 10);
+    ctx.fillStyle = '#6b4526';                                  /* frame */
+    ctx.fillRect(x + 2, y + 4, 3, 12);
+    ctx.fillRect(x + 15, y + 4, 3, 12);
+    ctx.fillRect(x + 1, y + 2, 18, 3);
+    ctx.fillStyle = '#8a5a32';
+    ctx.fillRect(x + 1, y + 2, 18, 1);
+    ctx.fillRect(x + 2, y + 4, 3, 1);
+    ctx.fillStyle = '#4a3018';                                  /* broken beam */
+    ctx.fillRect(x + 5, y + 7, 10, 2);
+    ctx.fillStyle = '#39424c';                                  /* rail */
+    ctx.fillRect(x + 7, y + 13, 6, 1);
+    ctx.fillRect(x + 7, y + 15, 6, 1);
+    if (Math.sin(t * 2) > 0.7) {                                /* something blinks */
+      ctx.fillStyle = '#f5c04e';
+      ctx.fillRect(x + 9, y + 10, 2, 2);
+    }
+  };
+
+  STRUCT.crystal = function (ctx, x, y, t) {
+    ctx.fillStyle = '#3b3550';
+    ctx.fillRect(x + 3, y + 13, 14, 3);
+    var spikes = [[6, 4, 3, 12], [10, 1, 4, 15], [14, 6, 3, 10]];
+    var glow = 0.65 + 0.35 * Math.sin(t * 2.2);
+    for (var i = 0; i < spikes.length; i++) {
+      var sp = spikes[i];
+      ctx.fillStyle = '#2f5f88';
+      ctx.fillRect(x + sp[0] - 1, y + sp[1], sp[2] + 2, sp[3]);
+      ctx.fillStyle = '#5fc8e8';
+      ctx.globalAlpha = glow;
+      ctx.fillRect(x + sp[0], y + sp[1], sp[2], sp[3]);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#d8f6ff';
+      ctx.fillRect(x + sp[0], y + sp[1], 1, Math.floor(sp[3] * 0.6));
+    }
+  };
+
+  STRUCT.meteor = function (ctx, x, y, t) {
+    ctx.fillStyle = '#4a4038';                                  /* crater */
+    ctx.fillRect(x, y + 11, 20, 5);
+    ctx.fillStyle = '#332c26';
+    ctx.fillRect(x + 2, y + 12, 16, 3);
+    ctx.fillStyle = '#26221e';                                  /* charred body */
+    ctx.fillRect(x + 4, y + 3, 12, 10);
+    ctx.fillRect(x + 3, y + 5, 14, 7);
+    ctx.fillStyle = '#3a342e';
+    ctx.fillRect(x + 5, y + 4, 9, 2);
+    var heat = 0.5 + 0.5 * Math.sin(t * 4);
+    ctx.fillStyle = '#ff7a3a';
+    ctx.globalAlpha = heat;
+    ctx.fillRect(x + 6, y + 7, 3, 2);
+    ctx.fillRect(x + 11, y + 6, 2, 3);
+    ctx.fillRect(x + 8, y + 10, 4, 1);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#ffd08a';
+    ctx.fillRect(x + 7, y + 7, 1, 1);
+    ctx.fillRect(x + 11, y + 7, 1, 1);
+  };
+
+  STRUCT.rift = function (ctx, x, y, t) {
+    var pulse = 0.5 + 0.5 * Math.sin(t * 1.8);
+    ctx.fillStyle = '#4a2c78';
+    ctx.globalAlpha = 0.35 + pulse * 0.3;
+    ctx.fillRect(x + 2, y + 2, 16, 14);
+    ctx.globalAlpha = 1;
+    var rows = [[9, 2], [8, 4], [6, 7], [5, 9], [6, 8], [7, 6], [8, 4], [9, 3]];
+    ctx.fillStyle = '#a678e8';
+    for (var i = 0; i < rows.length; i++) {
+      ctx.fillRect(x + rows[i][0] - 1, y + 3 + i, rows[i][1] + 2, 1);
+    }
+    ctx.fillStyle = '#000000';
+    for (i = 0; i < rows.length; i++) ctx.fillRect(x + rows[i][0], y + 3 + i, rows[i][1], 1);
+    ctx.fillStyle = '#e0d0ff';
+    ctx.globalAlpha = pulse;
+    ctx.fillRect(x + 9, y + 3, 1, 8);
+    ctx.globalAlpha = 1;
+  };
+
+  /* an undiscovered find: loose ground with something glinting in it */
+  STRUCT.mound = function (ctx, x, y, t, tone) {
+    var c = tone || '#7a6448';
+    ctx.fillStyle = U.shade(c, -45);
+    ctx.fillRect(x + 2, y + 11, 16, 5);
+    ctx.fillStyle = c;
+    ctx.fillRect(x + 4, y + 9, 12, 6);
+    ctx.fillRect(x + 6, y + 7, 8, 3);
+    ctx.fillStyle = U.shade(c, 26);
+    ctx.fillRect(x + 6, y + 7, 8, 1);
+    ctx.fillStyle = U.shade(c, -25);
+    ctx.fillRect(x + 5, y + 12, 3, 1);
+    ctx.fillRect(x + 12, y + 11, 3, 1);
+    if (Math.sin(t * 3.4) > 0.5) {
+      ctx.fillStyle = '#fff6c8';
+      ctx.fillRect(x + 10, y + 9, 1, 1);
+      ctx.fillRect(x + 9, y + 8, 1, 1);
+    }
+  };
+
+  var STRUCT_W = 20, STRUCT_H = 18;
+  P.STRUCT_H = STRUCT_H;
+
+  P.structure = function (ctx, id, cx, by, t, buried, tone) {
+    var fn = buried ? STRUCT.mound : STRUCT[id];
+    if (!fn) return;
+    var x = Math.round(cx - STRUCT_W / 2), y = Math.round(by - STRUCT_H);
+    ctx.fillStyle = 'rgba(0,0,0,.24)';
+    ctx.fillRect(x + 2, by - 1, STRUCT_W - 4, 2);
+    fn(ctx, x, y, t, tone);
+  };
+
+  /* ---------------------------------------------------------
      Scenery
      --------------------------------------------------------- */
   P.cloud = function (ctx, x, y, w, h, alpha) {
@@ -573,6 +730,176 @@
     for (var i = 0; i < n; i++) {
       var dx = Math.round((rng() - 0.5) * 10), dy = Math.round((rng() - 0.5) * 5);
       ctx.fillRect(x + dx, y + dy, 1, 2);
+    }
+  };
+
+  /* ---------------------------------------------------------
+     Equipment sprites - one shape per slot, tinted by tier
+     --------------------------------------------------------- */
+  var GEAR = {};
+
+  GEAR.pick = function (ctx, x, y, c) {
+    var i;
+    ctx.fillStyle = U.shade(c, -50);                       /* head outline */
+    ctx.fillRect(x + 2, y + 2, 12, 4);
+    ctx.fillStyle = c;
+    ctx.fillRect(x + 3, y + 2, 10, 2);
+    ctx.fillRect(x + 2, y + 3, 3, 2);
+    ctx.fillRect(x + 11, y + 3, 3, 2);
+    ctx.fillStyle = U.shade(c, 34);
+    ctx.fillRect(x + 4, y + 2, 8, 1);
+    ctx.fillStyle = '#6b4526';                             /* handle */
+    for (i = 0; i < 10; i++) {
+      ctx.fillRect(x + 8 - Math.floor(i * 0.35), y + 5 + i, 2, 1);
+    }
+    ctx.fillStyle = '#8a5a32';
+    for (i = 0; i < 10; i++) ctx.fillRect(x + 8 - Math.floor(i * 0.35), y + 5 + i, 1, 1);
+  };
+
+  GEAR.bag = function (ctx, x, y, c) {
+    ctx.fillStyle = U.shade(c, -55);                       /* strap */
+    ctx.fillRect(x + 4, y + 1, 2, 4);
+    ctx.fillRect(x + 10, y + 1, 2, 4);
+    ctx.fillRect(x + 5, y, 6, 2);
+    ctx.fillStyle = U.shade(c, -40);
+    ctx.fillRect(x + 2, y + 4, 12, 11);
+    ctx.fillStyle = c;
+    ctx.fillRect(x + 3, y + 5, 10, 9);
+    ctx.fillStyle = U.shade(c, 26);
+    ctx.fillRect(x + 3, y + 5, 10, 2);
+    ctx.fillStyle = U.shade(c, -60);                       /* flap + buckle */
+    ctx.fillRect(x + 2, y + 7, 12, 3);
+    ctx.fillStyle = U.shade(c, 50);
+    ctx.fillRect(x + 7, y + 8, 2, 2);
+  };
+
+  GEAR.boots = function (ctx, x, y, c) {
+    ctx.fillStyle = c;
+    ctx.fillRect(x + 4, y + 2, 5, 8);
+    ctx.fillRect(x + 4, y + 10, 9, 3);
+    ctx.fillStyle = U.shade(c, 28);
+    ctx.fillRect(x + 4, y + 2, 5, 2);
+    ctx.fillStyle = U.shade(c, -55);                       /* sole */
+    ctx.fillRect(x + 3, y + 13, 11, 2);
+    ctx.fillStyle = U.shade(c, -30);
+    ctx.fillRect(x + 4, y + 6, 5, 1);
+    ctx.fillRect(x + 9, y + 10, 4, 1);
+  };
+
+  GEAR.gloves = function (ctx, x, y, c) {
+    ctx.fillStyle = U.shade(c, -45);
+    ctx.fillRect(x + 3, y + 3, 10, 10);
+    ctx.fillStyle = c;
+    ctx.fillRect(x + 4, y + 3, 8, 9);
+    ctx.fillRect(x + 4, y + 2, 2, 2);                      /* fingers */
+    ctx.fillRect(x + 7, y + 1, 2, 3);
+    ctx.fillRect(x + 10, y + 2, 2, 2);
+    ctx.fillRect(x + 12, y + 6, 2, 3);                     /* thumb */
+    ctx.fillStyle = U.shade(c, 30);
+    ctx.fillRect(x + 4, y + 3, 8, 1);
+    ctx.fillStyle = U.shade(c, -65);                       /* cuff */
+    ctx.fillRect(x + 3, y + 12, 10, 3);
+  };
+
+  GEAR.charm = function (ctx, x, y, c) {
+    ctx.fillStyle = '#c8b06a';                             /* chain */
+    ctx.fillRect(x + 6, y + 1, 4, 1);
+    ctx.fillRect(x + 5, y + 2, 1, 2);
+    ctx.fillRect(x + 10, y + 2, 1, 2);
+    var rows = [[6, 4], [4, 8], [2, 12], [3, 10], [5, 6], [7, 2]];
+    ctx.fillStyle = U.shade(c, -45);
+    for (var i = 0; i < rows.length; i++) {
+      ctx.fillRect(x + rows[i][0] - 1, y + 4 + i, rows[i][1] + 2, 1);
+    }
+    ctx.fillStyle = c;
+    for (i = 0; i < rows.length; i++) ctx.fillRect(x + rows[i][0], y + 4 + i, rows[i][1], 1);
+    ctx.fillStyle = U.shade(c, 55);
+    ctx.fillRect(x + 6, y + 5, 2, 2);
+  };
+
+  GEAR.lamp = function (ctx, x, y, c) {
+    ctx.fillStyle = U.shade(c, -30);
+    ctx.fillRect(x + 7, y, 2, 2);                          /* handle */
+    ctx.fillRect(x + 5, y + 1, 6, 1);
+    ctx.fillStyle = c;
+    ctx.fillRect(x + 4, y + 2, 8, 2);                      /* cap */
+    ctx.fillRect(x + 4, y + 12, 8, 3);                     /* base */
+    ctx.fillStyle = U.shade(c, 30);
+    ctx.fillRect(x + 4, y + 2, 8, 1);
+    ctx.fillStyle = U.shade(c, -45);                       /* frame */
+    ctx.fillRect(x + 4, y + 4, 2, 8);
+    ctx.fillRect(x + 10, y + 4, 2, 8);
+    ctx.fillStyle = '#2a2415';                             /* glass */
+    ctx.fillRect(x + 6, y + 4, 4, 8);
+    ctx.fillStyle = '#ffd76a';
+    ctx.fillRect(x + 7, y + 6, 2, 5);
+    ctx.fillStyle = '#fff6c8';
+    ctx.fillRect(x + 7, y + 8, 1, 2);
+  };
+
+  /* ---------------------------------------------------------
+     A dimension as a little world, and a depth layer as a
+     cross-section of its rock
+     --------------------------------------------------------- */
+  function disc(ctx, cx, cy, r, colorTop, colorBottom) {
+    for (var dy = -r; dy <= r; dy++) {
+      var half = Math.floor(Math.sqrt(Math.max(0, r * r - dy * dy)));
+      if (!half) continue;
+      ctx.fillStyle = dy < -r * 0.15 ? colorTop : colorBottom;
+      ctx.fillRect(cx - half, cy + dy, half * 2, 1);
+    }
+  }
+
+  P.dimSprite = function (ctx, index, size) {
+    var dim = D.DIMENSIONS[index];
+    if (!dim) return;
+    var cx = Math.floor(size / 2), cy = Math.floor(size / 2);
+    var r = Math.floor(size / 2) - 3;
+
+    if (dim.space) {                                       /* a few stars */
+      ctx.fillStyle = 'rgba(255,255,255,.8)';
+      ctx.fillRect(1, 2, 1, 1);
+      ctx.fillRect(size - 3, 4, 1, 1);
+      ctx.fillRect(3, size - 4, 1, 1);
+      ctx.fillRect(size - 2, size - 6, 1, 1);
+    }
+    if (dim.planet && dim.planet.ring) {                   /* accretion ring */
+      ctx.fillStyle = dim.planet.accent;
+      ctx.fillRect(cx - r - 2, cy, (r + 2) * 2, 1);
+    }
+    disc(ctx, cx, cy, r + 1, U.shade(dim.body.grass, -55), U.shade(dim.body.stone, -55));
+    disc(ctx, cx, cy, r, dim.body.grass, dim.body.stone);
+    ctx.fillStyle = U.shade(dim.body.dirt, 10);            /* a band of crust */
+    ctx.fillRect(cx - r + 1, cy - 1, r * 2 - 2, 2);
+    ctx.fillStyle = U.shade(dim.body.grass, 40);           /* highlight */
+    ctx.fillRect(cx - r + 2, cy - r + 2, 3, 2);
+    if (dim.glow) {
+      ctx.fillStyle = dim.glow;
+      ctx.globalAlpha = 0.3;
+      ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+      ctx.globalAlpha = 1;
+    }
+  };
+
+  P.layerSprite = function (ctx, layerIndex, size) {
+    var L = S.layer(layerIndex);
+    var top = Math.max(2, Math.floor(size * 0.28));
+    ctx.fillStyle = L.wall;
+    ctx.fillRect(1, 1, size - 2, size - 2);
+    ctx.fillStyle = L.floor;
+    ctx.fillRect(1, 1, size - 2, top);
+    ctx.fillStyle = L.floor2;
+    ctx.fillRect(1, 1 + top, size - 2, 2);
+    ctx.fillStyle = U.shade(L.wall, -40);
+    ctx.fillRect(1, size - 4, size - 2, 3);
+    /* a couple of seams of whatever grows at this depth */
+    var seam = S.dimOres().filter(function (o) { return (o.w[layerIndex] || 0) > 0; });
+    var rng = U.mulberry(700 + layerIndex * 31);
+    for (var i = 0; i < 4; i++) {
+      var o = seam[Math.floor(rng() * seam.length)] || seam[0];
+      if (!o) break;
+      ctx.fillStyle = o.gem;
+      ctx.fillRect(2 + Math.floor(rng() * (size - 6)), top + 3 + Math.floor(rng() * (size - top - 8)), 2, 2);
     }
   };
 
@@ -626,6 +953,60 @@
     } catch (e) {
       iconCache[key] = '';
     }
+    return iconCache[key];
+  };
+
+  P.gearIcon = function (slot, tier, size) {
+    size = size || 22;
+    var key = 'g:' + slot + ':' + tier + ':' + size;
+    if (iconCache[key]) return iconCache[key];
+    var fn = GEAR[slot];
+    if (!fn) return '';
+    var chainDef = D.GEAR[slot];
+    var entry = chainDef && chainDef.tiers[U.clamp(tier, 0, chainDef.tiers.length - 1)];
+    var color = entry ? D.materialColor(entry.name) : D.tierColor(tier);
+    var o = offscreen(size);
+    try {
+      fn(o.ctx, Math.floor((size - 16) / 2), Math.floor((size - 16) / 2), color);
+      iconCache[key] = o.cv.toDataURL();
+    } catch (e) { iconCache[key] = ''; }
+    return iconCache[key];
+  };
+
+  P.dimIcon = function (index, size) {
+    size = size || 22;
+    var key = 'd:' + index + ':' + size;
+    if (iconCache[key]) return iconCache[key];
+    var o = offscreen(size);
+    try {
+      P.dimSprite(o.ctx, index, size);
+      iconCache[key] = o.cv.toDataURL();
+    } catch (e) { iconCache[key] = ''; }
+    return iconCache[key];
+  };
+
+  /* depends on the dimension you are standing in, so it is keyed by both */
+  P.layerIcon = function (index, size) {
+    size = size || 22;
+    var key = 'L:' + S.get().dim + ':' + index + ':' + size;
+    if (iconCache[key]) return iconCache[key];
+    var o = offscreen(size);
+    try {
+      P.layerSprite(o.ctx, index, size);
+      iconCache[key] = o.cv.toDataURL();
+    } catch (e) { iconCache[key] = ''; }
+    return iconCache[key];
+  };
+
+  P.structIcon = function (id, size) {
+    size = size || 24;
+    var key = 's:' + id + ':' + size;
+    if (iconCache[key]) return iconCache[key];
+    var o = offscreen(size);
+    try {
+      P.structure(o.ctx, id, Math.floor(size / 2), size - 2, P.ICON_T, false);
+      iconCache[key] = o.cv.toDataURL();
+    } catch (e) { iconCache[key] = ''; }
     return iconCache[key];
   };
 

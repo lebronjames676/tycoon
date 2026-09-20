@@ -68,7 +68,7 @@
     D.GEAR_SLOTS.forEach(function (slot) {
       var s = U.el('div', 'slot');
       s.dataset.slot = slot;
-      s.innerHTML = '<span>' + D.GEAR[slot].icon + '</span><b class="tier"></b>';
+      s.innerHTML = '<img class="gear" alt=""><b class="tier"></b>';
       s.addEventListener('click', function () { UI.open('craft'); });
       dom.slots.appendChild(s);
     });
@@ -81,6 +81,9 @@
       var slot = nodes[i].dataset.slot;
       var tier = S.gearTier(slot);
       nodes[i].querySelector('.tier').textContent = g.gear[slot] + 1;
+      var im = nodes[i].querySelector('img.gear');
+      var want = P.gearIcon(slot, g.gear[slot], 22);
+      if (im && im.getAttribute('src') !== want) im.setAttribute('src', want);
       nodes[i].title = tier.name;
       var can = S.canCraft(slot);
       nodes[i].classList.toggle('up', !!can.ok);
@@ -291,7 +294,7 @@
 
       if (!next) {
         html += card({
-          icon: chainDef.icon, name: cur.name, owned: true, tag: 'MAX',
+          img: P.gearIcon(slot, cur.tier), name: cur.name, owned: true, tag: 'MAX',
           desc: STAT_LABEL[chainDef.stat](cur.stat),
           button: { act: 'none', label: 'FULLY UPGRADED', disabled: true }
         });
@@ -303,7 +306,7 @@
          c.reason === 'money' ? 'Need ' + U.fmtMoney(next.money) : 'Missing ore');
 
       html += card({
-        icon: chainDef.icon,
+        img: P.gearIcon(slot, next.tier),
         name: next.name,
         tag: 'T' + (next.tier + 1),
         tagLock: !c.ok,
@@ -408,7 +411,8 @@
       '</div>';
 
     html += '<div class="grid" style="margin-top:12px">' + card({
-      icon: '\u{1F3DD}', name: maxed ? 'Island fully grown' : 'Expand to ' + (g.size + 1) + ' x ' + (g.size + 1),
+      img: P.dimIcon(g.dim, 26),
+      name: maxed ? 'Island fully grown' : 'Expand to ' + (g.size + 1) + ' x ' + (g.size + 1),
       desc: maxed ? 'There is no more sky to claim.' :
         'Push the rock outward. +' + ((g.size + 1) * (g.size + 1) - g.size * g.size) + ' tiles, more ore on every layer.',
       price: maxed ? null : U.fmtMoney(cost),
@@ -444,6 +448,7 @@
       var onSurface = g.layer === 0;
 
       html += card({
+        img: P.dimIcon(i, 26),
         name: dm.name,
         tag: current ? 'YOU ARE HERE' : (unlocked ? 'OPEN' : dm.rebirths + ' REBIRTHS'),
         tagLock: !unlocked,
@@ -478,10 +483,11 @@
       var atLayer = i === g.layer;
       var ores = S.dimOres().filter(function (o) { return (o.w[L.index] || 0) > 0; })
         .slice(-3).map(function (o) {
-          return '<i class="dot" style="display:inline-block;background:' + o.color + '"></i> ' + o.name;
+          return '<img class="pix xs" src="' + P.oreIcon(o.id, 18) + '" alt=""> ' + o.name;
         }).join(' ');
 
       html += card({
+        img: P.layerIcon(i, 22),
         name: L.name,
         tag: atLayer ? 'YOU ARE HERE' : (unlocked ? 'OPEN' : 'SEALED'),
         tagLock: !unlocked,
@@ -784,6 +790,23 @@
         '<span class="grow">' + o.name + '</span><span class="num">' + U.fmt(n) + '</span></div>';
     });
     if (mined) html += '<div class="section"><h4>Ore mined (all time)</h4><div class="rows">' + mined + '</div></div>';
+
+    /* --- structures uncovered --- */
+    var foundMap = g.stats.found || {};
+    var fHtml = '', fTotal = 0;
+    D.STRUCTURES.forEach(function (st) {
+      var n = foundMap[st.id] || 0;
+      fTotal += n;
+      fHtml += '<div class="row" style="opacity:' + (n ? 1 : 0.5) + '">' +
+        '<img class="pix sm" src="' + P.structIcon(st.id, 24) + '" alt="">' +
+        '<span class="grow">' + U.esc(st.name) +
+        '<br><span class="sub">' + U.esc(n ? st.desc : 'Not found yet') + '</span></span>' +
+        '<span class="num">' + (n ? U.fmt(n) : '&mdash;') + '</span></div>';
+    });
+    html += '<div class="section"><h4>Finds &middot; ' + U.fmt(fTotal) + ' uncovered</h4>' +
+      '<div class="note">Loose mounds of ground hide fossils, geodes, old mineshafts and stranger ' +
+      'things. Walk within a few tiles to uncover one, then dig it out - they are tough, but they ' +
+      'pay in a single lump.</div><div class="rows">' + fHtml + '</div></div>';
 
     /* --- milestone tracks --- */
     var mHtml = '';

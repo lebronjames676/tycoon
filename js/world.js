@@ -9,10 +9,12 @@
   /* nodes[layer] = { "x,y": node }  -- rebuilt at boot, never saved */
   W.nodes = [];
   W.respawnQueue = [];        /* {layer, at} */
+  W.structQueue = [];         /* {layer, at} */
 
   W.reset = function () {
     W.nodes = [];
     W.respawnQueue = [];
+    W.structQueue = [];
     for (var i = 0; i < D.LAYERS.length; i++) W.nodes.push({});
   };
 
@@ -118,12 +120,96 @@
 
   W.removeNode = function (layer, node) {
     delete W.nodes[layer][U.key(node.x, node.y)];
-    W.respawnQueue.push({ layer: layer, at: U.now() + S.derive().respawn * 1000 });
+    if (node.struct) {
+      /* a find takes far longer to come back than a seam of ore */
+      W.structQueue.push({
+        layer: layer,
+        at: U.now() + D.STRUCT_RESPAWN * 1000 * U.rand(0.8, 1.6) * (S.derive().respawn / D.RESPAWN)
+      });
+    } else {
+      W.respawnQueue.push({ layer: layer, at: U.now() + S.derive().respawn * 1000 });
+    }
+  };
+
+  /* ---------------------------------------------------------
+     Structures - buried finds, stored alongside ore nodes so
+     they inherit targeting, collision and mining for free
+     --------------------------------------------------------- */
+  W.countStructures = function (layer) {
+    var n = 0, m = W.nodes[layer] || {};
+    for (var k in m) if (m[k].struct) n++;
+    return n;
+  };
+
+  W.targetStructures = function (layer) {
+    var b = W.bounds();
+    var defs = D.structuresFor(layer, S.get().dim);
+    if (!defs.length) return 0;
+    return U.clamp(Math.round(b.size * b.size * D.STRUCT_DENSITY), 1, 8);
+  };
+
+  /* the typical toughness of rock at this depth, weighted by what spawns */
+  W.avgOreHp = function (layer) {
+    var list = S.dimOres(), total = 0, weight = 0;
+    for (var i = 0; i < list.length; i++) {
+      var w = list[i].w[layer] || 0;
+      if (w <= 0) continue;
+      weight += w;
+      total += w * list[i].hp;
+    }
+    return weight ? total / weight : 10;
+  };
+
+  W.spawnStructure = function (layer, silent) {
+    var g = S.get();
+    var defs = D.structuresFor(layer, g.dim);
+    if (!defs.length) return null;
+    var def = U.weighted(defs, function (d) { return d.weight; });
+    if (!def) return null;
+
+    var b = W.bounds();
+    for (var attempt = 0; attempt < 90; attempt++) {
+      var x = U.randInt(b.x0, b.x1), y = U.randInt(b.y0, b.y1);
+      if (!W.tileFreeForNode(layer, x, y)) continue;
+      /* toughness is measured against the AVERAGE rock at this depth, not a
+         single roll - otherwise a fossil that happened to roll stone would be
+         softer than the iron node sitting next to it */
+      var ore = W.rollOre(layer);
+      var maxHp = Math.ceil(W.avgOreHp(layer) * S.layer(layer).hpMult * def.hp);
+      var node = {
+        x: x, y: y, ore: ore.id, struct: def.id, buried: true,
+        hp: maxHp, maxHp: maxHp, seed: U.randInt(1, 99999),
+        born: U.now(), pop: silent ? 0 : 1
+      };
+      W.nodes[layer][U.key(x, y)] = node;
+      return node;
+    }
+    return null;
+  };
+
+  /* the pay-out for cracking one open, scaled to where it was found */
+  W.structureReward = function (def, layer) {
+    var g = S.get();
+    var list = S.dimOres(), total = 0, weight = 0;
+    for (var i = 0; i < list.length; i++) {
+      var w = list[i].w[layer] || 0;
+      if (w <= 0) continue;
+      weight += w;
+      total += w * list[i].value;
+    }
+    var avg = weight ? total / weight : 1;
+    var unit = avg * S.layer(layer).valMult * S.derive().valueMult;
+    return {
+      money: unit * def.money,
+      ore: Math.max(1, Math.round(def.ore)),
+      xp: def.xp * (1 + layer * 0.35) * (1 + g.dim * 1.5),
+      cores: def.coreChance && Math.random() < def.coreChance ? 1 : 0
+    };
   };
 
   W.count = function (layer) {
     var n = 0, m = W.nodes[layer];
-    for (var k in m) n++;
+    for (var k in m) if (!m[k].struct) n++;
     return n;
   };
 
@@ -135,6 +221,10 @@
       var guard = 0;
       while (W.count(l) < target && guard++ < 400) {
         if (!W.spawnNode(l, silent)) break;
+      }
+      var sTarget = W.targetStructures(l), sGuard = 0;
+      while (W.countStructures(l) < sTarget && sGuard++ < 20) {
+        if (!W.spawnStructure(l, silent)) break;
       }
     }
   };
@@ -149,9 +239,17 @@
         if (layer < g.layersUnlocked && W.count(layer) < W.targetNodes(layer)) W.spawnNode(layer);
       }
     }
+    for (var i = W.structQueue.length - 1; i >= 0; i--) {
+      if (W.structQueue[i].at <= now) {
+        var sl = W.structQueue[i].layer;
+        W.structQueue.splice(i, 1);
+        if (sl < g.layersUnlocked && W.countStructures(sl) < W.targetStructures(sl)) W.spawnStructure(sl);
+      }
+    }
     /* safety net: an expansion or a demolished building frees new space */
     for (var l = 0; l < g.layersUnlocked; l++) {
       if (W.count(l) < W.targetNodes(l) - 1 && Math.random() < 0.02) W.spawnNode(l);
+      if (W.countStructures(l) < W.targetStructures(l) && Math.random() < 0.004) W.spawnStructure(l);
     }
   };
 

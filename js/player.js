@@ -60,20 +60,71 @@
     return { x: wx / len, y: wy / len };
   }
 
+  /* shove the miner onto the nearest tile that is not solid */
+  function nudgeOff(layer, node) {
+    var around = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
+    for (var i = 0; i < around.length; i++) {
+      var nx = node.x + around[i][0], ny = node.y + around[i][1];
+      if (!W.inBounds(nx, ny) || W.solid(layer, nx, ny)) continue;
+      me.x = nx + 0.5;
+      me.y = ny + 0.5;
+      return true;
+    }
+    /* boxed in on every side: falling back to digging it out beats a
+       softlock, and the reward still gets paid */
+    W.removeNode(layer, node);
+    return false;
+  }
+
   /* ---------------------------------------------------------
      Mining
      --------------------------------------------------------- */
   function findTarget(layer) {
-    var map = W.nodes[layer] || {}, best = null, bestD = D.MINE_RANGE;
+    var map = W.nodes[layer] || {};
+    var best = null, bestD = D.MINE_RANGE;
+    var find = null, findD = D.MINE_RANGE;
     for (var k in map) {
       var n = map[k];
       var d = U.dist(me.x, me.y, n.x + 0.5, n.y + 0.5);
-      if (d < bestD) { bestD = d; best = n; }
+      if (d >= D.MINE_RANGE) continue;
+      /* an uncovered find outranks ordinary rock: you walked over here to
+         dig it out, not to chip the stone sitting next to it */
+      if (n.struct && !n.buried) {
+        if (d < findD) { findD = d; find = n; }
+      } else if (d < bestD) { bestD = d; best = n; }
     }
-    return best;
+    return find || best;
+  }
+
+  function breakStructure(layer, node) {
+    var g = S.get();
+    var def = D.STRUCT_BY_ID[node.struct];
+    var reward = W.structureReward(def, layer);
+    var cx = node.x + 0.5, cy = node.y + 0.5;
+
+    S.earn(reward.money);
+    S.addXp(reward.xp);
+    g.stats.found[def.id] = (g.stats.found[def.id] || 0) + 1;
+
+    /* the ore inside is pulled from the rarest seams at this depth */
+    var list = S.dimOres().filter(function (o) { return (o.w[layer] || 0) > 0; });
+    var pick = list[list.length - 1] || D.ORE_BY_ID[node.ore];
+    S.addOre(pick.id, reward.ore);
+
+    if (reward.cores) { g.cores += reward.cores; g.coresTotal += reward.cores; }
+
+    R.burst(cx, cy, '#fff6c8', 22);
+    R.burst(cx, cy, pick.gem, 14);
+    R.kick(4);
+    R.floatText(cx, cy, '+' + U.fmtMoney(reward.money), '#f5c04e', 2);
+
+    W.removeNode(layer, node);
+    me.target = null;
+    Game.onStructureBroken(def, reward, pick);
   }
 
   function breakNode(layer, node) {
+    if (node.struct) { breakStructure(layer, node); return; }
     var g = S.get(), d = S.derive();
     var ore = D.ORE_BY_ID[node.ore];
     var amount = 1 + (Math.random() < d.doubleChance ? 1 : 0);
@@ -106,7 +157,13 @@
         U.dist(me.x, me.y, me.target.x + 0.5, me.target.y + 0.5) > D.MINE_RANGE + 0.35)) {
       me.target = null;
     }
-    if (!me.target) me.target = findTarget(layer);
+    /* Once a find is being dug out it keeps the swings until it breaks.
+       Otherwise re-pick every tick, so walking up to a structure switches
+       to it instead of staying locked on the boulder we started on. */
+    if (!me.target || !me.target.struct) {
+      var pick = findTarget(layer);
+      if (pick) me.target = pick;
+    }
 
     var active = me.target && (wantMine || g.autoMine);
     if (!active) { me.swingPhase = -1; me.swing = Math.max(0, me.swing - dt * 2); return; }
@@ -222,9 +279,6 @@
   PL.update = function (dt, input) {
     var g = S.get(), d = S.derive();
 
-    /* safety: if a rock ever spawns on top of us, dig straight out */
-    var stuck = W.nodeAt(g.layer, Math.floor(me.x), Math.floor(me.y));
-    if (stuck) W.removeNode(g.layer, stuck);
 
     var v = moveVector(input);
     me.walking = !!(v.x || v.y);
@@ -242,17 +296,33 @@
     me.x = U.clamp(me.x, b.x0 + RADIUS, b.x1 + 1 - RADIUS);
     me.y = U.clamp(me.y, b.y0 + RADIUS, b.y1 + 1 - RADIUS);
 
+    /* If a rock ends up underneath us - the clamp above can do it on the
+       edge row - dig straight out.  A structure is never destroyed this
+       way: it is a rare find, so we step aside instead. */
+    var stuck = W.nodeAt(g.layer, Math.floor(me.x), Math.floor(me.y));
+    if (stuck) {
+      if (stuck.struct) nudgeOff(g.layer, stuck);
+      else W.removeNode(g.layer, stuck);
+    }
+
     mineTick(dt, input.mine);
     sellTick(dt);
     dropTick(dt);
 
     if (me.bumpMsg > 0) me.bumpMsg -= dt;
 
-    /* fade node hit flashes */
+    /* fade node hit flashes, and uncover any find we have wandered up to */
     var map = W.nodes[g.layer] || {};
     for (var k in map) {
-      if (map[k].hit > 0) map[k].hit -= dt;
-      if (map[k].pop > 0) map[k].pop = Math.max(0, map[k].pop - dt * 4);
+      var n = map[k];
+      if (n.hit > 0) n.hit -= dt;
+      if (n.pop > 0) n.pop = Math.max(0, n.pop - dt * 4);
+      if (n.struct && n.buried &&
+          U.dist(me.x, me.y, n.x + 0.5, n.y + 0.5) < D.UNCOVER_RANGE) {
+        n.buried = false;
+        n.pop = 1;
+        Game.onStructureFound(D.STRUCT_BY_ID[n.struct], n);
+      }
     }
 
     PL.sync();

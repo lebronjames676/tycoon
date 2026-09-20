@@ -426,8 +426,20 @@
         var ore = D.ORE_BY_ID[n.ore];
         var shake = n.hit > 0 ? Math.round(Math.sin(n.hit * 60) * 2) : 0;
         var pop = n.pop > 0 ? Math.round(n.pop * 5) : 0;
-        P.rock(ctx, sx, sy + 2 + pop, ore, n, shake);
-        P.hpBar(ctx, sx, sy + 2, n);
+        if (n.struct) {
+          P.structure(ctx, n.struct, sx + shake, sy + 2 + pop, t, n.buried,
+                      U.shade(S.layer(layer).wall, 18));
+          if (!n.buried) {
+            P.hpBar(ctx, sx, sy - 6, n);
+            /* a marker so a find is obvious across a crowded island */
+            var mk = Math.round(Math.sin(t * 3) * 2);
+            P.text(ctx, '!', sx, sy - P.STRUCT_H - 14 + mk,
+                   { align: 'center', scale: 1, color: '#f5c04e', plate: true });
+          }
+        } else {
+          P.rock(ctx, sx, sy + 2 + pop, ore, n, shake);
+          P.hpBar(ctx, sx, sy + 2, n);
+        }
       } else if (it.kind === 'build') {
         var b = it.b;
         P.building(ctx, b.id, ox + isoX(b.x + 0.5, b.y + 0.5),

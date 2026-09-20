@@ -11,7 +11,7 @@
      Fresh state
      --------------------------------------------------------- */
   function blankStats() {
-    return { nodes: 0, mined: {}, sold: 0, swings: 0, playtime: 0, bestMoney: 0, totalEarned: 0, built: 0, visited: { sky: 1 } };
+    return { nodes: 0, mined: {}, sold: 0, swings: 0, playtime: 0, bestMoney: 0, totalEarned: 0, built: 0, visited: { sky: 1 }, found: {} };
   }
 
   S.create = function (carry) {
@@ -422,6 +422,13 @@
      --------------------------------------------------------- */
   S.ensureContracts = function () {
     if (!game.contracts) game.contracts = [];
+    /* a rebirth reseals the depths and a locked dimension may have been
+       showing: replace anything the player can no longer actually mine */
+    for (var i = 0; i < game.contracts.length; i++) {
+      if (!D.contractValid(game, game.contracts[i])) {
+        game.contracts[i] = D.rollContract(game);
+      }
+    }
     var guard = 0;
     while (game.contracts.length < D.CONTRACT_SLOTS && guard++ < 10) {
       game.contracts.push(D.rollContract(game));
@@ -595,6 +602,7 @@
       if (!st.keep) st.keep = {};
       if (typeof st.quest !== 'number') st.quest = 0;
       if (!st.stats.visited) st.stats.visited = { sky: 1 };
+      if (!st.stats.found) st.stats.found = {};
       if (typeof st.dim !== 'number') st.dim = 0;
       st.dim = U.clamp(st.dim, 0, D.DIMENSIONS.length - 1);
       /* never strand a save in a dimension its rebirth count no longer allows */

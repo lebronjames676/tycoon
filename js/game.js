@@ -139,6 +139,26 @@
       '<button data-act="none">START DIGGING</button></div>');
   };
 
+  Game.onStructureFound = function (def, node) {
+    if (!def) return;
+    Game.sfx('rare');
+    /* the toast carries the name - a floating label as long as
+       "ABANDONED MINESHAFT" just covers the island */
+    R.burst(node.x + 0.5, node.y + 0.5, '#fff6c8', 8);
+    UI.toast('You uncover a ' + def.name + '! ' + def.desc, 'gold');
+  };
+
+  Game.onStructureBroken = function (def, reward, ore) {
+    Game.sfx('level');
+    var bits = [U.fmtMoney(reward.money)];
+    if (reward.ore) bits.push(U.fmt(reward.ore) + ' ' + ore.name);
+    if (reward.cores) bits.push(reward.cores + ' prestige core');
+    UI.toast(def.name + ' cracked open: ' + bits.join(', '), reward.cores ? 'epic' : 'gold');
+    if (reward.cores) {
+      R.floatText(PL.get().x, PL.get().y, '+' + reward.cores + ' CORE', '#a678e8', 2);
+    }
+  };
+
   Game.doRebirth = function () {
     var before = S.get().rebirths;
     var gained = S.rebirth();

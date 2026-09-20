@@ -21,6 +21,7 @@
   D.RESPAWN = 1.7;             /* seconds before a broken node comes back */
   D.SWING = 0.38;              /* seconds per pickaxe swing               */
   D.MINE_RANGE = 1.55;         /* tiles                                   */
+  D.UNCOVER_RANGE = 3.2;       /* how close you must get to spot a find    */
   D.SAVE_KEY = 'skyshard.save.v1';
   D.TICK_MS = 1000 / 60;
   D.OFFLINE_CAP_H = 8;
@@ -324,6 +325,41 @@
     ])
   };
   D.GEAR_SLOTS = ['pick', 'bag', 'boots', 'gloves', 'charm', 'lamp'];
+  /* the material each gear tier is made of, used to colour its icon */
+  D.TIER_COLORS = [
+    '#8a5a32', '#9aa3ab', '#c87a3f', '#b6b0a6', '#cfe0ea', '#f0bc3c',
+    '#d8384e', '#3fbd6d', '#79e6f0', '#8a5fd0', '#7b5fd6', '#ffd76a'
+  ];
+  D.tierColor = function (tier) {
+    return D.TIER_COLORS[U.clamp(tier, 0, D.TIER_COLORS.length - 1)];
+  };
+
+  /* Each chain reaches a given material at a different tier - the Copper
+     Charm is tier 1 while the Copper Pickaxe is tier 2 - so an icon takes
+     its colour from what the thing is made of, not its position. */
+  var MATERIAL = [
+    [/star|halo/,                    '#ffd76a'],
+    [/void|singularity|dimensional/, '#7b5fd6'],
+    [/obsidian/,                     '#8a5fd0'],
+    [/diamond|prism/,                '#79e6f0'],
+    [/emerald|beacon/,               '#3fbd6d'],
+    [/ruby/,                         '#d8384e'],
+    [/gold|idol/,                    '#f0bc3c'],
+    [/silver|locket|strider/,        '#cfe0ea'],
+    [/iron|reinforced/,              '#b6b0a6'],
+    [/copper/,                       '#c87a3f'],
+    [/crystal|cache/,                '#8fd8ff'],
+    [/leather|work|oil|rucksack|satchel|pack/, '#9a6a3c'],
+    [/stone|pebble|worn|cloth|bare|candle/,    '#9aa3ab']
+  ];
+
+  D.materialColor = function (name) {
+    var n = String(name || '').toLowerCase();
+    for (var i = 0; i < MATERIAL.length; i++) {
+      if (MATERIAL[i][0].test(n)) return MATERIAL[i][1];
+    }
+    return '#9aa3ab';
+  };
 
   /* ---------------------------------------------------------
      Buildings - placed on surface tiles
@@ -372,6 +408,48 @@
   ];
   D.BUILD_BY_ID = {};
   D.BUILDINGS.forEach(function (b) { D.BUILD_BY_ID[b.id] = b; });
+
+  /* ---------------------------------------------------------
+     Structures - rare finds buried in the rock.  They are mined
+     like ore but take far longer and pay out in one lump.
+     `hp` multiplies the typical node toughness of their layer.
+     `money`/`ore`/`xp` multiply the average ore value there.
+     --------------------------------------------------------- */
+  D.STRUCTURES = [
+    { id: 'fossil',  name: 'Fossil',              minL: 0, maxL: 2, weight: 30, hp: 6,
+      desc: 'Ancient bones pressed flat into the rock.',
+      money: 55, ore: 4, xp: 40 },
+    { id: 'geode',   name: 'Geode',               minL: 1, maxL: 4, weight: 26, hp: 9,
+      desc: 'A dull ball of stone, hollow and glittering inside.',
+      money: 20, ore: 18, xp: 30, rare: true },
+    { id: 'shaft',   name: 'Abandoned Mineshaft', minL: 2, maxL: 5, weight: 18, hp: 14,
+      desc: 'Someone dug here long before you, and left in a hurry.',
+      money: 180, ore: 10, xp: 80 },
+    { id: 'crystal', name: 'Crystal Formation',   minL: 3, maxL: 5, weight: 16, hp: 18,
+      desc: 'A spire of grown crystal, humming just below hearing.',
+      money: 90, ore: 26, xp: 120, rare: true },
+    { id: 'meteor',  name: 'Meteorite',           minL: 0, maxL: 1, weight: 24, hp: 11, space: true,
+      desc: 'Something fell here, and not long ago.',
+      money: 140, ore: 14, xp: 70, rare: true },
+    { id: 'rift',    name: 'Void Rift',           minL: 4, maxL: 5, weight: 8,  hp: 26,
+      desc: 'A tear in the rock with nothing at all behind it.',
+      money: 400, ore: 30, xp: 260, rare: true, coreChance: 0.2 }
+  ];
+  D.STRUCT_BY_ID = {};
+  D.STRUCTURES.forEach(function (st) { D.STRUCT_BY_ID[st.id] = st; });
+
+  D.STRUCT_DENSITY = 0.016;        /* structures per unlocked tile */
+  D.STRUCT_RESPAWN = 45;           /* seconds, before Deep Scan */
+
+  /* which structures can appear at this layer of this dimension */
+  D.structuresFor = function (layer, dimIndex) {
+    var dim = D.DIMENSIONS[dimIndex] || D.DIMENSIONS[0];
+    return D.STRUCTURES.filter(function (st) {
+      if (layer < st.minL || layer > st.maxL) return false;
+      if (st.space && !dim.space) return false;
+      return true;
+    });
+  };
 
   /* ---------------------------------------------------------
      Island expansion
@@ -469,6 +547,10 @@
     { id: 'reb100',   name: 'Eternal Engine',   desc: 'Reach 100 rebirths.',                   cores: 250, money: 0,   test: function (s) { return s.rebirths >= 100; } },
     { id: 'power',    name: 'Grid Operator',    desc: 'Supply 1,000 power.',                   cores: 5, money: 5e6,   test: function (s) { var p = 0; s.buildings.forEach(function (b) { var d = D.BUILD_BY_ID[b.id]; if (d && d.power > 0) p += d.power; }); return p >= 1000; } },
     { id: 'hoard',    name: 'Full Sheds',       desc: 'Fill 10,000 ore of warehouse space.',   cores: 6, money: 1e7,   test: function (s) { var n = 0; for (var k in (s.store || {})) n += s.store[k]; return n >= 10000; } },
+    { id: 'dig1',     name: 'Paleontologist',   desc: 'Uncover 10 fossils.',                   cores: 2, money: 5e4,  test: function (s) { return ((s.stats.found || {}).fossil || 0) >= 10; } },
+    { id: 'dig2',     name: 'Treasure Hunter',   desc: 'Uncover 50 structures of any kind.',    cores: 5, money: 1e6,  test: function (s) { var f = s.stats.found || {}, n = 0; for (var k in f) n += f[k]; return n >= 50; } },
+    { id: 'dig3',     name: 'Field Archivist',   desc: 'Uncover every kind of structure.',      cores: 15, money: 5e7, test: function (s) { var f = s.stats.found || {}; return D.STRUCTURES.every(function (st) { return (f[st.id] || 0) >= 1; }); } },
+    { id: 'rift',     name: 'Rift Walker',       desc: 'Crack open a Void Rift.',               cores: 8, money: 1e7,  test: function (s) { return ((s.stats.found || {}).rift || 0) >= 1; } },
     { id: 'offworld', name: 'Off World',         desc: 'Set foot in a second dimension.',       cores: 5, money: 1e6,  test: function (s) { return Object.keys(s.stats.visited || {}).length >= 2; } },
     { id: 'tour',     name: 'Grand Tour',        desc: 'Visit every dimension there is.',       cores: 150, money: 1e11, test: function (s) { return Object.keys(s.stats.visited || {}).length >= D.DIMENSIONS.length; } },
     { id: 'star',     name: 'Stardust',         desc: 'Mine a Star Core.',                     cores: 5, money: 1e6,   test: function (s) { return (s.stats.mined.starcore || 0) >= 1; } }
@@ -511,6 +593,8 @@
       goal: 1,     prog: function (s) { return s.buildings.length; },    money: 1200 },
     { name: 'Somewhere to Put It', desc: 'Build a warehouse so ore stops overflowing.',
       goal: 1,     prog: function (s) { return ownsOf(s, 'store'); },    money: 2000 },
+    { name: 'Buried Treasure',   desc: 'Find and dig out a fossil. Watch for mounds in the ground.',
+      goal: 1,     prog: function (s) { return (s.stats.found || {}).fossil || 0; }, money: 6000, xp: 300 },
     { name: 'Down the Shaft',    desc: 'Unlock the Shallow Caves.',
       goal: 2,     prog: function (s) { return s.layersUnlocked; },      money: 4000, xp: 200 },
     { name: 'Room to Grow',      desc: 'Expand the island once.',
@@ -595,6 +679,10 @@
       bonus: 'luck', per: 0.04, label: '+4% rare ore chance',
       stat: rareMined,
       tiers: [10, 50, 250, 1200, 6000, 30000, 150000, 750000] },
+    { id: 'finds',  name: 'Excavator',    icon: '\u{1F9B4}', unit: 'structures uncovered',
+      bonus: 'luck', per: 0.05, label: '+5% rare ore chance',
+      stat: function (s) { var f = s.stats.found || {}, n = 0; for (var k in f) n += f[k]; return n; },
+      tiers: [1, 5, 20, 60, 160, 400, 1000, 2500] },
     { id: 'jobs',   name: 'Diligence',    icon: '\u{1F4CB}', unit: 'contracts filled',
       bonus: 'contract', per: 0.05, label: '+5% contract pay',
       stat: function (s) { return s.contractsDone || 0; },
@@ -638,25 +726,65 @@
   D.CONTRACT_SLOTS = 3;
   D.CONTRACT_MULT = 3.2;          /* pays this much over the raw sale price */
 
-  D.rollContract = function (state) {
-    var layer = Math.floor(Math.random() * state.layersUnlocked);
-    var ore = null, guard = 0;
-    while (!ore && guard++ < 20) {
-      ore = (function () {
-        var total = 0, i;
-        for (i = 0; i < D.ORES.length; i++) total += D.ORES[i].w[layer] || 0;
-        if (total <= 0) return null;
-        var r = Math.random() * total;
-        for (i = 0; i < D.ORES.length; i++) {
-          r -= D.ORES[i].w[layer] || 0;
-          if (r <= 0) return D.ORES[i];
-        }
-        return D.ORES[0];
-      })();
-      if (!ore) layer = Math.max(0, layer - 1);
+  /* which dimensions this save can actually reach */
+  D.reachableDims = function (state) {
+    var out = [];
+    for (var i = 0; i < D.DIMENSIONS.length; i++) {
+      if (state.rebirths >= D.DIMENSIONS[i].rebirths) out.push(i);
     }
-    ore = ore || D.ORE_BY_ID.stone;
-    var need = Math.round((18 + state.level * 2.2) / (1 + ore.index * 0.55));
+    return out.length ? out : [0];
+  };
+
+  /* an ore is fair game only if its dimension is open and it spawns at a
+     depth the player has actually unlocked */
+  D.oreReachable = function (state, ore) {
+    if (!ore) return false;
+    if (state.rebirths < D.DIMENSIONS[ore.dim].rebirths) return false;
+    for (var L = 0; L < state.layersUnlocked && L < 6; L++) {
+      if ((ore.w[L] || 0) > 0) return true;
+    }
+    return false;
+  };
+
+  D.contractValid = function (state, c) {
+    return !!c && D.oreReachable(state, D.ORE_BY_ID[c.ore]);
+  };
+
+  D.rollContract = function (state) {
+    var dims = D.reachableDims(state);
+    /* favour wherever the shard is parked, but anything unlocked can come up */
+    var here = U.clamp(state.dim | 0, 0, D.DIMENSIONS.length - 1);
+    var dim = (dims.indexOf(here) >= 0 && Math.random() < 0.7)
+      ? here : dims[Math.floor(Math.random() * dims.length)];
+
+    var list = D.ORES_BY_DIM[dim] || D.ORES_BY_DIM[0];
+    var maxLayer = U.clamp(state.layersUnlocked, 1, 6);
+    var layer = Math.floor(Math.random() * maxLayer);
+
+    var ore = null, guard = 0;
+    while (!ore && guard++ < 8) {
+      var total = 0, i;
+      for (i = 0; i < list.length; i++) total += list[i].w[layer] || 0;
+      if (total > 0) {
+        var r = Math.random() * total;
+        for (i = 0; i < list.length; i++) {
+          r -= list[i].w[layer] || 0;
+          if (r <= 0) { ore = list[i]; break; }
+        }
+      }
+      if (!ore) layer = layer > 0 ? layer - 1 : maxLayer - 1;
+    }
+    /* last resort: anything from this dimension that spawns shallow */
+    if (!ore) {
+      for (var k = 0; k < list.length && !ore; k++) {
+        if (D.oreReachable(state, list[k])) ore = list[k];
+      }
+    }
+    ore = ore || D.ORES_BY_DIM[0][0];
+
+    /* rank inside its own dimension, so a rare Moon ore is asked for in the
+       same small quantities as a rare home ore */
+    var need = Math.round((18 + state.level * 2.2) / (1 + ore.rank * 0.55));
     need = Math.max(5, Math.min(400, need));
     return { ore: ore.id, need: need, id: Math.random().toString(36).slice(2, 9) };
   };
@@ -681,7 +809,8 @@
     'Guild contracts pay roughly triple the market rate - check the Jobs board.',
     'A warehouse keeps crafting ore safe from auto-selling. Walk past it to drop off.',
     'Press F on the market pad to sell your whole bag and warehouses in one go.',
-    'Rebirth milestones unlock whole new dimensions - the Moon is waiting at 5.'
+    'Rebirth milestones unlock whole new dimensions - the Moon is waiting at 5.',
+    'Mounds of loose ground hide fossils, geodes and old mineshafts. Walk near one to uncover it.'
   ];
 
   root.D = D;
