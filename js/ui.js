@@ -342,6 +342,14 @@
     if (b.playerPower) return pct(b.playerPower) + ' to your own mining power';
     if (b.luck) return pct(b.luck) + ' rare ore chance';
     if (b.doubleOre) return pct(b.doubleOre) + ' double drop chance';
+    if (b.grade) return pct(b.grade) + ' chance of a graded seam';
+    if (b.quake) return 'cracks every node on your layer';
+    if (b.structSpeed || b.structSlots) {
+      var parts = [];
+      if (b.structSpeed) parts.push(pct(b.structSpeed) + ' faster finds');
+      if (b.structSlots) parts.push('+' + b.structSlots + ' find per layer');
+      return parts.join(' &middot; ');
+    }
     if (b.bonus) return pct(b.bonus) + ' ' + (BONUS_LABEL[b.id] || 'bonus');
     return '';
   }
@@ -790,6 +798,26 @@
         '<span class="grow">' + o.name + '</span><span class="num">' + U.fmt(n) + '</span></div>';
     });
     if (mined) html += '<div class="section"><h4>Ore mined (all time)</h4><div class="rows">' + mined + '</div></div>';
+
+    /* --- graded seams --- */
+    var gradeMap = g.stats.grades || {};
+    var gHtml = '', gTotal = 0;
+    for (var gi = 1; gi < D.GRADES.length; gi++) {
+      var gr = D.GRADES[gi];
+      var n = gradeMap[gr.id] || 0;
+      gTotal += n;
+      gHtml += '<div class="row" style="opacity:' + (n ? 1 : 0.55) + '">' +
+        '<i class="dot" style="background:' + gr.glow + '"></i>' +
+        '<span class="grow" style="color:' + (n ? gr.color : 'inherit') + '">' + gr.name +
+        '<br><span class="sub">yields ' + gr.yield + 'x the ore</span></span>' +
+        '<span class="num">' + (n ? U.fmt(n) : '&mdash;') + '</span></div>';
+    }
+    html += '<div class="section"><h4>Graded seams &middot; ' + U.fmt(gTotal) + ' broken</h4>' +
+      '<div class="note">Every node rolls a grade when it appears. Graded rock glows, and pays ' +
+      'a multiple of the ore. Your luck is <b>+' + Math.round(d.luck * 100) + '%</b>' +
+      (d.gradeBonus ? ' plus <b>+' + Math.round(d.gradeBonus * 100) + '%</b> from assay offices' : '') +
+      ', making the average seam worth <b>x' + d.gradeYield.toFixed(2) + '</b>.</div>' +
+      '<div class="rows">' + gHtml + '</div></div>';
 
     /* --- structures uncovered --- */
     var foundMap = g.stats.found || {};

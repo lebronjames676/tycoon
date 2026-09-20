@@ -12,6 +12,9 @@ reason to blow the whole thing up and start again richer.
 
 ![the island](docs/screenshot.png)
 
+![graded seams](docs/grades.png)
+*Graded seams glow and name themselves. Pristine pays 12x the ore, Flawless a full 40x.*
+
 ![structures](docs/structures.png)
 *Six kinds of buried find, uncovered and still mounded. Walk within a few tiles to spot one.*
 
@@ -73,12 +76,15 @@ automatically.
    sold by the market pad, your conveyors or machine overflow, and still count
    towards recipes and contracts. Everything you leave on *sell* behaves as
    before, so building one never quietly switches off your income.
-5. **Build.** Eighteen machines work around the clock, including while the game
-   is closed. Huts, drills, excavators, deep rigs and tunnel borers dig;
-   generators and reactors power them; conveyors and mag conveyors ship ore to
-   market; smelters, vaults and refineries raise the price. Bulldozers clear
-   rubble so veins respawn faster, jackhammer crews boost *your* own swing,
-   ore scanners surface rarer ore and blast sheds double your drops.
+5. **Build.** Twenty-four machines work around the clock, including while the
+   game is closed. Huts, drills, excavators, deep rigs, tunnel borers and
+   quantum bores dig; generators, reactors and fusion plants power them;
+   conveyors and mag conveyors ship ore to market; smelters, vaults and
+   refineries raise the price. Bulldozers clear rubble so veins respawn faster,
+   jackhammer crews boost *your* own swing, ore scanners surface rarer ore and
+   blast sheds double your drops. Prospector's camps turn up more buried finds,
+   assay offices push seams up a grade, and a seismic array cracks every node
+   on your layer at once.
 6. **Expand.** A wider island carries more ore veins on every layer and more room
    for machines, up to 20×20.
 7. **Dig deeper.** Six layers per dimension. Each multiplies both rock toughness
@@ -111,7 +117,11 @@ automatically.
 
 ## Mechanics in the box
 
-- Forty-two ores across six dimensions, each with its own spawn weights per depth
+- Fifty-six ores across six dimensions, each with its own spawn weights per depth
+- **Ore grades**: every node rolls Common, Rich (4x ore), Pristine (12x) or
+  Flawless (40x) when it spawns. Graded rock glows, rings the ground and names
+  itself, and your luck widens every band - which is what finally makes
+  lanterns, scanners and assay offices worth stacking
 - Node health, cracking, damage numbers and respawn timers
 - Six buried structures - fossils, geodes, abandoned mineshafts, crystal
   formations, meteorites and void rifts - that appear as loose mounds until

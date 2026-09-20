@@ -11,7 +11,7 @@
      Fresh state
      --------------------------------------------------------- */
   function blankStats() {
-    return { nodes: 0, mined: {}, sold: 0, swings: 0, playtime: 0, bestMoney: 0, totalEarned: 0, built: 0, visited: { sky: 1 }, found: {} };
+    return { nodes: 0, mined: {}, sold: 0, swings: 0, playtime: 0, bestMoney: 0, totalEarned: 0, built: 0, visited: { sky: 1 }, found: {}, grades: {} };
   }
 
   S.create = function (carry) {
@@ -233,8 +233,13 @@
       buildMult: (1 + perk('foreman') * 0.20 + (ms.buildMult || 0)) * (1 + rb.build) * dim.build,
       offlineRate: U.clamp(0.25 + perk('offline') * 0.08, 0, 1),
       light: S.gearTier('lamp').stat,
-      contractBonus: 1 + (ms.contract || 0)
+      contractBonus: 1 + (ms.contract || 0),
+      gradeBonus: buildingSum('grade'),
+      structSpeed: 1 + buildingSum('structSpeed'),
+      structSlots: buildingSum('structSlots')
     };
+    /* how much ore an average seam gives once grades are counted */
+    d.gradeYield = D.expectedGradeYield(d.luck, d.gradeBonus);
 
     /* money multiplier: charm x perks x cores x refining buildings x meta */
     d.valueMult = S.gearTier('charm').stat
@@ -603,6 +608,7 @@
       if (typeof st.quest !== 'number') st.quest = 0;
       if (!st.stats.visited) st.stats.visited = { sky: 1 };
       if (!st.stats.found) st.stats.found = {};
+      if (!st.stats.grades) st.stats.grades = {};
       if (typeof st.dim !== 'number') st.dim = 0;
       st.dim = U.clamp(st.dim, 0, D.DIMENSIONS.length - 1);
       /* never strand a save in a dimension its rebirth count no longer allows */

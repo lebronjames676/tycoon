@@ -8,11 +8,12 @@
 
   var oreAccum = 0, sellAccum = 0;
   var popAccum = 0, popTimer = 0;
+  var quakeTimer = 0;
   E.lastProduced = 0;       /* ore/sec, for the stats panel */
   E.lastIncome = 0;         /* $/sec rolling estimate       */
   var incomeWindow = 0, incomeAccum = 0;
 
-  E.reset = function () { oreAccum = 0; sellAccum = 0; incomeAccum = 0; incomeWindow = 0; popAccum = 0; popTimer = 0; };
+  E.reset = function () { oreAccum = 0; sellAccum = 0; incomeAccum = 0; incomeWindow = 0; popAccum = 0; popTimer = 0; quakeTimer = 0; };
 
   /* ---------------------------------------------------------
      Production rates
@@ -29,7 +30,7 @@
       else ore += def.rate * eff;
     }
     return {
-      ore: ore * d.buildMult,
+      ore: ore * d.buildMult * d.gradeYield,
       sell: sell * d.buildMult,
       power: pw
     };
@@ -146,6 +147,32 @@
             S.earn(v);
             g.stats.sold += overflow;
           }
+        }
+      }
+    }
+
+    /* --- seismic arrays crack the whole layer on a timer --- */
+    var arrays = S.countBuilding('seismic');
+    if (arrays > 0) {
+      quakeTimer -= dt;
+      if (quakeTimer <= 0) {
+        quakeTimer = 5;
+        var pw2 = S.power();
+        var force = arrays * d.power * D.BUILD_BY_ID.seismic.quake * pw2.efficiency;
+        var broken = W.quake(g.layer, force);
+        if (broken.length) {
+          R.kick(3);
+          for (var bi = 0; bi < broken.length; bi++) {
+            var bn = broken[bi];
+            var bore = D.ORE_BY_ID[bn.ore];
+            var bgrade = D.GRADES[bn.grade || 0] || D.GRADES[0];
+            S.addOre(bore.id, bgrade.yield);
+            g.stats.nodes++;
+            if (bn.grade) g.stats.grades[bgrade.id] = (g.stats.grades[bgrade.id] || 0) + 1;
+            R.burst(bn.x + 0.5, bn.y + 0.5, bore.gem, 4);
+          }
+          R.floatText(PL.get().x, PL.get().y - 1.2,
+                      'QUAKE x' + broken.length, '#e0a060', 1);
         }
       }
     }

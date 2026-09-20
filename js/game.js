@@ -114,10 +114,16 @@
   /* ---------------------------------------------------------
      Events fired from other modules
      --------------------------------------------------------- */
-  Game.onNodeBroken = function (ore, layer) {
-    Game.sfx(ore.index >= 6 ? 'rare' : 'breakN');
-    if (ore.index >= 8) {
-      UI.toast('Struck ' + ore.name + '!', ore.index >= 10 ? 'epic' : 'gold');
+  Game.onNodeBroken = function (ore, layer, grade) {
+    Game.sfx(grade >= 2 || ore.rank >= 6 ? 'rare' : 'breakN');
+    if (grade >= 2) {
+      var g2 = D.GRADES[grade];
+      UI.toast(g2.name + ' ' + ore.name + '! ' + g2.yield + 'x the ore.',
+               grade >= 3 ? 'epic' : 'gold');
+      return;
+    }
+    if (ore.rank >= 8) {
+      UI.toast('Struck ' + ore.name + '!', ore.rank >= 10 ? 'epic' : 'gold');
     }
   };
 

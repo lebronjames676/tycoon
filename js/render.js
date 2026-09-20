@@ -426,6 +426,19 @@
         var ore = D.ORE_BY_ID[n.ore];
         var shake = n.hit > 0 ? Math.round(Math.sin(n.hit * 60) * 2) : 0;
         var pop = n.pop > 0 ? Math.round(n.pop * 5) : 0;
+        /* a graded seam gets a ring on the ground and, for the rarer two,
+           its name overhead - the halo alone is lost against bright rock */
+        if (n.grade) {
+          var gd = D.GRADES[n.grade];
+          var gp = 0.5 + 0.5 * Math.sin(t * 3 + n.seed);
+          ctx.globalAlpha = 0.3 + gp * 0.45;
+          ctx.strokeStyle = gd.glow;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.ellipse(sx, sy + TH / 2, 10 + gp * 4, 5 + gp * 2, 0, 0, 6.2832);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
         if (n.struct) {
           P.structure(ctx, n.struct, sx + shake, sy + 2 + pop, t, n.buried,
                       U.shade(S.layer(layer).wall, 18));
@@ -437,8 +450,14 @@
                    { align: 'center', scale: 1, color: '#f5c04e', plate: true });
           }
         } else {
-          P.rock(ctx, sx, sy + 2 + pop, ore, n, shake);
+          P.rock(ctx, sx, sy + 2 + pop, ore, n, shake, t);
           P.hpBar(ctx, sx, sy + 2, n);
+          if (n.grade >= 2) {
+            var gd2 = D.GRADES[n.grade];
+            var bob2 = Math.round(Math.sin(t * 3 + n.seed) * 2);
+            P.text(ctx, gd2.name, sx, sy - P.ROCK_H - 12 + bob2,
+                   { align: 'center', scale: 1, color: gd2.color, plate: true });
+          }
         }
       } else if (it.kind === 'build') {
         var b = it.b;

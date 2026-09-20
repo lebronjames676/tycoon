@@ -32,12 +32,16 @@
      --------------------------------------------------------- */
   D.ORES = [
     { id: 'stone',     name: 'Stone',      color: '#9aa3ab', gem: '#c3cbd2', value: 4,     hp: 8,   w: [46, 30, 14, 6, 2, 0] },
+    { id: 'quartz',    name: 'Quartz',     color: '#d8dce4', gem: '#ffffff', value: 6,     hp: 11,   w: [34, 24, 12, 4, 0, 0] },
     { id: 'coal',      name: 'Coal',       color: '#3f454b', gem: '#5d666e', value: 9,     hp: 16,   w: [26, 26, 20, 10, 4, 0] },
     { id: 'copper',    name: 'Copper',     color: '#c87a3f', gem: '#ef9d5c', value: 18,    hp: 34,   w: [18, 22, 18, 10, 4, 2] },
+    { id: 'sulfur',    name: 'Sulfur',     color: '#d4c24a', gem: '#f7ec8e', value: 26,    hp: 45,   w: [12, 20, 16, 8, 3, 0] },
     { id: 'iron',      name: 'Iron',       color: '#b6b0a6', gem: '#ded8cc', value: 42,    hp: 70,   w: [8, 16, 20, 16, 8, 4] },
     { id: 'silver',    name: 'Silver',     color: '#cfe0ea', gem: '#ffffff', value: 95,    hp: 130,  w: [2, 6, 16, 18, 12, 6] },
+    { id: 'cobalt',    name: 'Cobalt',     color: '#3f6fd8', gem: '#8fb4ff', value: 130,   hp: 170,  w: [0, 4, 14, 16, 10, 4] },
     { id: 'gold',      name: 'Gold',       color: '#f0bc3c', gem: '#ffe58a', value: 220,   hp: 240,  w: [0, 0, 10, 18, 16, 10] },
     { id: 'ruby',      name: 'Ruby',       color: '#d8384e', gem: '#ff7d8e', value: 520,   hp: 430,  w: [0, 0, 2, 12, 16, 12] },
+    { id: 'amethyst',  name: 'Amethyst',   color: '#9a5fd0', gem: '#d9b0ff', value: 760,   hp: 560,  w: [0, 0, 4, 14, 14, 10] },
     { id: 'emerald',   name: 'Emerald',    color: '#3fbd6d', gem: '#8dfab3', value: 1150,  hp: 760,  w: [0, 0, 0, 8, 16, 14] },
     { id: 'diamond',   name: 'Diamond',    color: '#79e6f0', gem: '#ddffff', value: 2600,  hp: 1300, w: [0, 0, 0, 2, 14, 16] },
     { id: 'obsidian',  name: 'Obsidian',   color: '#5a3a86', gem: '#9b6fd6', value: 6200,  hp: 2200, w: [0, 0, 0, 0, 6, 16] },
@@ -64,16 +68,20 @@
     ['regolith',  'Regolith',      '#8e8e92', '#c4c4c8', 5.0e4, 9000],
     ['iceshard',  'Ice Shard',     '#a8d8e8', '#e4f6ff', 1.2e5, 14000],
     ['helium3',   'Helium-3',      '#7fd4c0', '#c8fff0', 3.0e5, 22000],
+    ['anorthite', 'Anorthite',     '#cfc8b8', '#f4eedd', 5.0e5, 28000],
     ['lunarite',  'Lunarite',      '#d8d4e8', '#ffffff', 7.0e5, 34000],
     ['selenite',  'Selenite',      '#e8dfa8', '#fffbd8', 1.6e6, 52000],
+    ['tranquil',  'Tranquillite',  '#7fa8c8', '#cfe8ff', 2.6e6, 65000],
     ['mooncore',  'Moon Core',     '#6c5fa8', '#b9a8ff', 4.0e6, 80000]
   ]);
 
   dimOres(2, [
     ['chondrite', 'Chondrite',     '#6b5a4a', '#9c8672', 1.5e7, 1.2e5],
     ['nickeliron','Nickel-Iron',   '#9aa0a8', '#d4dae2', 3.5e7, 1.8e5],
+    ['olivine',   'Olivine',       '#6fae5f', '#b8e8a0', 5.5e7, 2.2e5],
     ['platinum',  'Platinum',      '#dfe6ea', '#ffffff', 8.0e7, 2.7e5],
     ['iridium',   'Iridium',       '#c0d0d8', '#f0fbff', 1.8e8, 4.0e5],
+    ['osmium',    'Osmium',        '#8fa8c0', '#cfe2f2', 2.7e8, 5.0e5],
     ['palladium', 'Palladium',     '#c8b8d8', '#f2e8ff', 4.0e8, 6.0e5],
     ['impactdia', 'Impact Diamond','#9ff0ff', '#ffffff', 9.0e8, 9.0e5]
   ]);
@@ -81,8 +89,10 @@
   dimOres(3, [
     ['slag',      'Solar Slag',    '#7a3a22', '#b8613a', 4.0e9, 1.3e6],
     ['solarglass','Solar Glass',   '#e0a040', '#ffd98a', 9.0e9, 2.0e6],
+    ['pyritecore','Pyrite Core',   '#c89a3a', '#f0d288', 1.4e10, 2.5e6],
     ['plasmaore', 'Plasma Ore',    '#ff7a3a', '#ffc08a', 2.0e10, 3.0e6],
     ['coronium',  'Coronium',      '#ffd040', '#fff4b0', 4.5e10, 4.5e6],
+    ['magnetar',  'Magnetar Ore',  '#e0e8ff', '#ffffff', 7.0e10, 5.5e6],
     ['fusioncore','Fusion Core',   '#ff5a40', '#ffb090', 1.0e11, 6.7e6],
     ['helion',    'Helion Crystal','#fff0a0', '#ffffff', 2.2e11, 1.0e7]
   ]);
@@ -90,17 +100,21 @@
   dimOres(4, [
     ['stardust',  'Stardust',      '#8a7fc8', '#cfc4ff', 1.0e12, 1.5e7],
     ['ioncrystal','Ion Crystal',   '#5fc8e8', '#b8f2ff', 2.2e12, 2.2e7],
+    ['protomat',  'Protomatter',   '#5fe0b0', '#c0ffe8', 3.4e12, 2.7e7],
     ['nebulite',  'Nebulite',      '#c85fc8', '#ffb8ff', 5.0e12, 3.3e7],
     ['pulsar',    'Pulsar Shard',  '#f0e070', '#fffbc0', 1.1e13, 5.0e7],
     ['darkmatter','Dark Matter',   '#2a2340', '#6f5fb0', 2.4e13, 7.4e7],
+    ['voidbloom', 'Void Bloom',    '#8f4fd8', '#d8b0ff', 3.6e13, 9.0e7],
     ['quasar',    'Quasar Heart',  '#ff6fa8', '#ffc8e0', 5.5e13, 1.1e8]
   ]);
 
   dimOres(5, [
     ['eventshard','Event Shard',   '#1e1a2e', '#5a4f8a', 2.5e14, 1.6e8],
     ['gravitite', 'Gravitite',     '#3a3550', '#7f76b8', 5.5e14, 2.4e8],
+    ['tachyonite','Tachyonite',    '#4f8fd8', '#b0d8ff', 8.0e14, 3.0e8],
     ['chronite',  'Chronite',      '#4fd8c8', '#c0fff4', 1.2e15, 3.6e8],
     ['entropy',   'Entropy Crystal','#b84fd8', '#ecb8ff', 2.7e15, 5.4e8],
+    ['axion',     'Axion',         '#d8a0ff', '#f4e0ff', 4.0e15, 6.6e8],
     ['voidprism', 'Void Prism',    '#ffffff', '#ffffff', 6.0e15, 8.0e8],
     ['singcore',  'Singularity Core','#0b0b12', '#8affff', 1.3e16, 1.2e9]
   ]);
@@ -127,6 +141,40 @@
     { name: 'Magma Core',    cost: 1.8e7,  hpMult: 4.0, valMult: 2.10, floor: '#6d3230', floor2: '#5c2a28', wall: '#3d1b1a', light: 0.58 },
     { name: 'The Void',      cost: 6.0e8,  hpMult: 6.5, valMult: 2.80, floor: '#241d3a', floor2: '#1d1730', wall: '#120e1f', light: 0.44 }
   ];
+
+  /* ---------------------------------------------------------
+     Ore grades - every node rolls one when it spawns.  A graded
+     seam yields a multiple of the ore, which is what finally
+     makes rare-ore luck worth chasing.
+     --------------------------------------------------------- */
+  D.GRADES = [
+    { id: 'common',   name: '',          yield: 1,  chance: 1,      color: null,      glow: null },
+    { id: 'rich',     name: 'RICH',      yield: 4,  chance: 0.060,  color: '#6fd66f', glow: '#6fd66f' },
+    { id: 'pristine', name: 'PRISTINE',  yield: 12, chance: 0.0120, color: '#58c8b6', glow: '#8ee6c8' },
+    { id: 'flawless', name: 'FLAWLESS',  yield: 40, chance: 0.0016, color: '#f5c04e', glow: '#ffe29a' }
+  ];
+
+  /* roll rarest first; luck widens every band */
+  D.rollGrade = function (luck, bonus) {
+    var scale = 1 + (luck || 0) + (bonus || 0);
+    for (var i = D.GRADES.length - 1; i >= 1; i--) {
+      if (Math.random() < Math.min(0.5, D.GRADES[i].chance * scale)) return i;
+    }
+    return 0;
+  };
+
+  /* what an average node is worth once grades are taken into account,
+     used so machines benefit from luck the same way hand mining does */
+  D.expectedGradeYield = function (luck, bonus) {
+    var scale = 1 + (luck || 0) + (bonus || 0);
+    var total = 1, remaining = 1;
+    for (var i = D.GRADES.length - 1; i >= 1; i--) {
+      var p = Math.min(0.5, D.GRADES[i].chance * scale) * remaining;
+      total += p * (D.GRADES[i].yield - 1);
+      remaining -= p;
+    }
+    return total;
+  };
 
   /* ---------------------------------------------------------
      Dimensions - the shard drifts to richer regions of space.
@@ -404,7 +452,23 @@
     { id: 'maglev', name: 'Mag Conveyor',icon: '\u{1F684}',  cost: 2.0e9,  growth: 2.05, power: -30,
       desc: 'Frictionless ore freight: ships 40 ore/sec to market.', rate: 40, ships: true },
     { id: 'refine', name: 'Refinery',    icon: '\u{1F3ED}',  cost: 9.0e9,  growth: 2.10, power: -40,
-      desc: 'Cracks ore down to pure metal before it is weighed. +25% sell value each.', bonus: 0.25 }
+      desc: 'Cracks ore down to pure metal before it is weighed. +25% sell value each.', bonus: 0.25 },
+
+    /* ---- survey and refinement ---- */
+    { id: 'prospect', name: "Prospector's Camp", icon: '\u{1F3D5}', cost: 1.5e5, growth: 1.80, power: -6,
+      desc: 'Surveyors read the ground for you: finds appear 25% sooner and one more can sit on each layer.',
+      structSpeed: 0.25, structSlots: 1 },
+    { id: 'assay',  name: 'Assay Office', icon: '\u{1F52C}',  cost: 1.2e6,  growth: 1.86, power: -8,
+      desc: 'Grades every seam before you swing. +15% chance a node comes up Rich or better.',
+      grade: 0.15 },
+    { id: 'seismic',name: 'Seismic Array',icon: '\u{1F30B}',  cost: 4.5e7,  growth: 1.95, power: -35,
+      desc: 'Shakes the whole layer every few seconds, cracking every node at once.', quake: 4 },
+    { id: 'fusion', name: 'Fusion Plant', icon: '\u269B',     cost: 1.2e9,  growth: 1.95, power: 5000,
+      desc: 'Bottled starlight. 5,000 power from a single building.' },
+    { id: 'qbore',  name: 'Quantum Bore', icon: '\u{1F300}',  cost: 1.2e11, growth: 2.10, power: -150,
+      desc: 'Digs in several places at once, which is not supposed to be possible: 400 ore/sec.', rate: 400 },
+    { id: 'gravc',  name: 'Gravity Compressor', icon: '\u{1F5DC}', cost: 6.0e11, growth: 2.15, power: -80,
+      desc: 'Folds ore into a space that should not hold it: +8,000 storage each.', capacity: 8000 }
   ];
   D.BUILD_BY_ID = {};
   D.BUILDINGS.forEach(function (b) { D.BUILD_BY_ID[b.id] = b; });
@@ -416,7 +480,7 @@
      `money`/`ore`/`xp` multiply the average ore value there.
      --------------------------------------------------------- */
   D.STRUCTURES = [
-    { id: 'fossil',  name: 'Fossil',              minL: 0, maxL: 2, weight: 30, hp: 6,
+    { id: 'fossil',  name: 'Fossil',              minL: 0, maxL: 2, weight: 30, hp: 8,
       desc: 'Ancient bones pressed flat into the rock.',
       money: 55, ore: 4, xp: 40 },
     { id: 'geode',   name: 'Geode',               minL: 1, maxL: 4, weight: 26, hp: 9,
@@ -547,6 +611,11 @@
     { id: 'reb100',   name: 'Eternal Engine',   desc: 'Reach 100 rebirths.',                   cores: 250, money: 0,   test: function (s) { return s.rebirths >= 100; } },
     { id: 'power',    name: 'Grid Operator',    desc: 'Supply 1,000 power.',                   cores: 5, money: 5e6,   test: function (s) { var p = 0; s.buildings.forEach(function (b) { var d = D.BUILD_BY_ID[b.id]; if (d && d.power > 0) p += d.power; }); return p >= 1000; } },
     { id: 'hoard',    name: 'Full Sheds',       desc: 'Fill 10,000 ore of warehouse space.',   cores: 6, money: 1e7,   test: function (s) { var n = 0; for (var k in (s.store || {})) n += s.store[k]; return n >= 10000; } },
+    { id: 'grade1',   name: 'Rich Seam',        desc: 'Break a Rich node.',                    cores: 0, money: 5000,  test: function (s) { return ((s.stats.grades || {}).rich || 0) >= 1; } },
+    { id: 'grade2',   name: 'Pristine Cut',     desc: 'Break a Pristine node.',                cores: 2, money: 1e5,   test: function (s) { return ((s.stats.grades || {}).pristine || 0) >= 1; } },
+    { id: 'grade3',   name: 'Flawless',         desc: 'Break a Flawless node - they are one in a thousand.', cores: 10, money: 1e7, test: function (s) { return ((s.stats.grades || {}).flawless || 0) >= 1; } },
+    { id: 'grade4',   name: 'Master Assayer',   desc: 'Break 100 Pristine nodes.',             cores: 12, money: 5e7,  test: function (s) { return ((s.stats.grades || {}).pristine || 0) >= 100; } },
+    { id: 'quake',    name: 'Ground Shaker',    desc: 'Run a Seismic Array.',                  cores: 5, money: 1e7,   test: function (s) { return D.ownsOf(s, 'seismic') >= 1; } },
     { id: 'dig1',     name: 'Paleontologist',   desc: 'Uncover 10 fossils.',                   cores: 2, money: 5e4,  test: function (s) { return ((s.stats.found || {}).fossil || 0) >= 10; } },
     { id: 'dig2',     name: 'Treasure Hunter',   desc: 'Uncover 50 structures of any kind.',    cores: 5, money: 1e6,  test: function (s) { var f = s.stats.found || {}, n = 0; for (var k in f) n += f[k]; return n >= 50; } },
     { id: 'dig3',     name: 'Field Archivist',   desc: 'Uncover every kind of structure.',      cores: 15, money: 5e7, test: function (s) { var f = s.stats.found || {}; return D.STRUCTURES.every(function (st) { return (f[st.id] || 0) >= 1; }); } },
@@ -593,6 +662,8 @@
       goal: 1,     prog: function (s) { return s.buildings.length; },    money: 1200 },
     { name: 'Somewhere to Put It', desc: 'Build a warehouse so ore stops overflowing.',
       goal: 1,     prog: function (s) { return ownsOf(s, 'store'); },    money: 2000 },
+    { name: 'Struck Rich',       desc: 'Break a Rich seam. Lucky gear and lanterns make them commoner.',
+      goal: 1,     prog: function (s) { return (s.stats.grades || {}).rich || 0; }, money: 9000, xp: 400 },
     { name: 'Buried Treasure',   desc: 'Find and dig out a fossil. Watch for mounds in the ground.',
       goal: 1,     prog: function (s) { return (s.stats.found || {}).fossil || 0; }, money: 6000, xp: 300 },
     { name: 'Down the Shaft',    desc: 'Unlock the Shallow Caves.',
@@ -679,6 +750,10 @@
       bonus: 'luck', per: 0.04, label: '+4% rare ore chance',
       stat: rareMined,
       tiers: [10, 50, 250, 1200, 6000, 30000, 150000, 750000] },
+    { id: 'grades', name: 'Assayer',      icon: '\u{1F48E}', unit: 'graded seams broken',
+      bonus: 'luck', per: 0.04, label: '+4% rare ore chance',
+      stat: function (s) { var gr = s.stats.grades || {}, n = 0; for (var k in gr) n += gr[k]; return n; },
+      tiers: [1, 10, 50, 250, 1200, 5000, 20000, 80000] },
     { id: 'finds',  name: 'Excavator',    icon: '\u{1F9B4}', unit: 'structures uncovered',
       bonus: 'luck', per: 0.05, label: '+5% rare ore chance',
       stat: function (s) { var f = s.stats.found || {}, n = 0; for (var k in f) n += f[k]; return n; },
@@ -810,7 +885,9 @@
     'A warehouse keeps crafting ore safe from auto-selling. Walk past it to drop off.',
     'Press F on the market pad to sell your whole bag and warehouses in one go.',
     'Rebirth milestones unlock whole new dimensions - the Moon is waiting at 5.',
-    'Mounds of loose ground hide fossils, geodes and old mineshafts. Walk near one to uncover it.'
+    'Mounds of loose ground hide fossils, geodes and old mineshafts. Walk near one to uncover it.',
+    'Glowing seams are graded: Rich pays 4x the ore, Pristine 12x and Flawless a full 40x.',
+    'Luck from lanterns, scanners and the Assay Office makes graded seams far commoner.'
   ];
 
   root.D = D;

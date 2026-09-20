@@ -150,10 +150,26 @@
   var ROCK = [[5, 6], [3, 10], [2, 12], [1, 14], [0, 16], [0, 16], [0, 16], [1, 14], [2, 12], [4, 8]];
   var ROCK_W = 16, ROCK_H = ROCK.length;
 
-  P.rock = function (ctx, cx, by, ore, node, shake) {
+  P.rock = function (ctx, cx, by, ore, node, shake, t) {
     var x = Math.round(cx - ROCK_W / 2 + (shake || 0));
     var y = Math.round(by - ROCK_H);
     var base = ore.color;
+    var grade = D.GRADES[node.grade || 0];
+
+    /* a graded seam announces itself: a halo, brighter crystal and a
+       sparkle that wanders over the surface */
+    if (grade && grade.glow) {
+      var pulse = 0.45 + 0.35 * Math.sin((t || 0) * 3 + node.seed);
+      ctx.globalAlpha = pulse;
+      ctx.fillStyle = grade.glow;
+      for (var gr = 0; gr < ROCK.length; gr++) {
+        ctx.fillRect(x + ROCK[gr][0] - 3, y + gr, ROCK[gr][1] + 6, 1);
+      }
+      ctx.fillRect(x + ROCK[0][0] - 1, y - 2, ROCK[0][1] + 2, 2);
+      ctx.fillRect(x + ROCK[ROCK.length - 1][0] - 1, y + ROCK.length, ROCK[ROCK.length - 1][1] + 2, 2);
+      ctx.globalAlpha = 1;
+      base = U.shade(base, 18);
+    }
 
     /* drop shadow */
     ctx.fillStyle = 'rgba(0,0,0,.22)';
@@ -176,8 +192,8 @@
 
     /* gem speckles - deterministic per node */
     var rng = U.mulberry(node.seed);
-    ctx.fillStyle = ore.gem;
-    var gems = 3 + Math.floor(rng() * 3);
+    ctx.fillStyle = grade && grade.glow ? grade.glow : ore.gem;
+    var gems = (3 + Math.floor(rng() * 3)) + (node.grade || 0);
     for (var i = 0; i < gems; i++) {
       var gy = 2 + Math.floor(rng() * (ROCK_H - 5));
       var row = ROCK[gy];
@@ -197,6 +213,12 @@
         ctx.fillRect(ccx, ccy, 1, 2);
         ctx.fillRect(ccx + 1, ccy + 2, 1, 1);
       }
+    }
+
+    if (grade && grade.glow) {
+      var sp = ((t || 0) * 2 + node.seed) % 1;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x + 2 + Math.floor(sp * (ROCK_W - 5)), y + 2 + Math.floor(sp * 4), 1, 1);
     }
   };
 
@@ -542,6 +564,103 @@
     ctx.fillStyle = '#e05b1a'; ctx.fillRect(x + 3, y + 10, 2, 2);
     ctx.fillStyle = 'rgba(200,210,215,.3)';
     ctx.fillRect(x + 8, y - 2 - Math.round((t * 4) % 3), 2, 2);
+  };
+
+  BUILD.prospect = function (ctx, x, y, t) {
+    ctx.fillStyle = '#4a545e'; ctx.fillRect(x + 1, y + 15, 14, 2);
+    ctx.fillStyle = '#c85f3f';                                   /* tent */
+    for (var i = 0; i < 7; i++) ctx.fillRect(x + 8 - i, y + 8 + i, i * 2 + 1, 1);
+    ctx.fillStyle = '#e07a54';
+    for (i = 0; i < 7; i++) ctx.fillRect(x + 8 - i, y + 8 + i, i + 1, 1);
+    ctx.fillStyle = '#2a1d14'; ctx.fillRect(x + 7, y + 12, 3, 3);
+    ctx.fillStyle = '#6b7680';                                   /* tripod */
+    ctx.fillRect(x + 12, y + 7, 1, 8);
+    ctx.fillRect(x + 11, y + 5, 4, 2);
+    ctx.fillStyle = '#8fd8ff'; ctx.fillRect(x + 14, y + 5, 2, 2);
+    if (Math.sin(t * 4) > 0) { ctx.fillStyle = '#f5c04e'; ctx.fillRect(x + 2, y + 13, 2, 2); }
+  };
+
+  BUILD.assay = function (ctx, x, y, t) {
+    ctx.fillStyle = '#4a545e'; ctx.fillRect(x + 1, y + 6, 14, 11);
+    ctx.fillStyle = '#5e6a76'; ctx.fillRect(x + 1, y + 6, 14, 2);
+    ctx.fillStyle = '#2c343c'; ctx.fillRect(x + 2, y + 9, 12, 7);
+    var bub = 0.5 + 0.5 * Math.sin(t * 5);
+    ctx.fillStyle = '#8ee6c8';                                   /* flasks */
+    ctx.fillRect(x + 3, y + 11, 3, 4);
+    ctx.fillStyle = '#58c8b6'; ctx.fillRect(x + 3, y + 12 + Math.round(bub), 3, 3);
+    ctx.fillStyle = '#e0d0ff'; ctx.fillRect(x + 8, y + 10, 3, 5);
+    ctx.fillStyle = '#a678e8'; ctx.fillRect(x + 8, y + 12, 3, 3);
+    ctx.fillStyle = '#cfe0ea'; ctx.fillRect(x + 12, y + 10, 2, 2);  /* lens */
+    ctx.fillStyle = '#f5c04e'; ctx.fillRect(x + 6, y + 3, 4, 3);
+    ctx.fillStyle = '#6b7680'; ctx.fillRect(x + 7, y + 6, 2, 1);
+  };
+
+  BUILD.seismic = function (ctx, x, y, t) {
+    var shake = Math.round(Math.sin(t * 16) * 1);
+    ctx.fillStyle = '#39424c'; ctx.fillRect(x + 1, y + 13, 14, 4);
+    ctx.fillStyle = '#6b7680';
+    ctx.fillRect(x + 3 + shake, y + 7, 10, 6);
+    ctx.fillStyle = '#8894a0'; ctx.fillRect(x + 3 + shake, y + 7, 10, 1);
+    ctx.fillStyle = '#e05b6a'; ctx.fillRect(x + 6 + shake, y + 9, 4, 2);
+    ctx.fillStyle = '#4a545e';                                   /* pistons */
+    ctx.fillRect(x + 1 + shake, y + 9, 2, 5);
+    ctx.fillRect(x + 13 + shake, y + 9, 2, 5);
+    ctx.fillStyle = 'rgba(224,160,96,.45)';                      /* shockwave */
+    var r = Math.floor((t * 10) % 8);
+    ctx.fillRect(x + 7 - r, y + 15, r * 2 + 2, 1);
+  };
+
+  BUILD.fusion = function (ctx, x, y, t) {
+    ctx.fillStyle = '#39424c'; ctx.fillRect(x, y + 12, 16, 5);
+    ctx.fillStyle = '#5e6a76'; ctx.fillRect(x + 2, y + 5, 12, 8);
+    ctx.fillStyle = '#7f8a94'; ctx.fillRect(x + 2, y + 5, 12, 1);
+    var spin = (t * 3) % 1;
+    ctx.fillStyle = '#0d1117'; ctx.fillRect(x + 4, y + 6, 8, 6);
+    ctx.fillStyle = '#8fd8ff';
+    ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 7);
+    ctx.fillRect(x + 6, y + 7, 4, 4);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 7, y + 8, 2, 2);
+    ctx.fillStyle = '#58c8b6';                                   /* coils */
+    ctx.fillRect(x + 3, y + 7 + Math.floor(spin * 4), 1, 2);
+    ctx.fillRect(x + 12, y + 10 - Math.floor(spin * 4), 1, 2);
+    ctx.fillStyle = '#4a545e'; ctx.fillRect(x + 1, y + 3, 3, 3); ctx.fillRect(x + 12, y + 3, 3, 3);
+  };
+
+  BUILD.qbore = function (ctx, x, y, t) {
+    ctx.fillStyle = '#2c343c'; ctx.fillRect(x + 1, y + 13, 14, 4);
+    var phase = (t * 2) % 1;
+    /* three ghosted heads, because it is in several places at once */
+    for (var i = 0; i < 3; i++) {
+      var off = Math.round(Math.sin(t * 3 + i * 2.1) * 3);
+      ctx.globalAlpha = i === 0 ? 1 : 0.35;
+      ctx.fillStyle = '#6b7680';
+      ctx.fillRect(x + 4 + off, y + 5, 8, 8);
+      ctx.fillStyle = '#a678e8';
+      ctx.fillRect(x + 6 + off, y + 7, 4, 4);
+      ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = '#e0d0ff';
+    ctx.fillRect(x + 7, y + 3 + Math.round(phase * 2), 2, 2);
+    ctx.fillStyle = '#39424c'; ctx.fillRect(x, y + 11, 16, 2);
+  };
+
+  BUILD.gravc = function (ctx, x, y, t) {
+    ctx.fillStyle = '#39424c'; ctx.fillRect(x + 1, y + 14, 14, 3);
+    ctx.fillStyle = '#4a545e'; ctx.fillRect(x + 2, y + 4, 12, 10);
+    ctx.fillStyle = '#5e6a76'; ctx.fillRect(x + 2, y + 4, 12, 1);
+    /* a crushed singularity of ore in the middle */
+    var sq = 2 + Math.round(Math.abs(Math.sin(t * 2)) * 2);
+    ctx.fillStyle = '#0a0a12';
+    ctx.fillRect(x + 4, y + 6, 8, 7);
+    ctx.fillStyle = '#c87a3f';
+    ctx.fillRect(x + 8 - sq, y + 9 - Math.floor(sq / 2), sq * 2, sq);
+    ctx.fillStyle = '#8ee6c8';
+    ctx.globalAlpha = 0.5;
+    ctx.fillRect(x + 4, y + 9, 8, 1);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#6b7680';
+    ctx.fillRect(x + 1, y + 6, 2, 8); ctx.fillRect(x + 13, y + 6, 2, 8);
   };
 
   P.building = function (ctx, id, cx, by, t) {

@@ -108,8 +108,10 @@
       if (!W.tileFreeForNode(layer, x, y)) continue;
       var ore = W.rollOre(layer);
       var maxHp = Math.ceil(ore.hp * S.layer(layer).hpMult);
+      var d = S.derive();
       var node = {
         x: x, y: y, ore: ore.id, hp: maxHp, maxHp: maxHp,
+        grade: D.rollGrade(d.luck, d.gradeBonus),
         seed: U.randInt(1, 99999), born: U.now(), pop: silent ? 0 : 1
       };
       W.nodes[layer][U.key(x, y)] = node;
@@ -122,9 +124,11 @@
     delete W.nodes[layer][U.key(node.x, node.y)];
     if (node.struct) {
       /* a find takes far longer to come back than a seam of ore */
+      var sd = S.derive();
       W.structQueue.push({
         layer: layer,
-        at: U.now() + D.STRUCT_RESPAWN * 1000 * U.rand(0.8, 1.6) * (S.derive().respawn / D.RESPAWN)
+        at: U.now() + D.STRUCT_RESPAWN * 1000 * U.rand(0.8, 1.6) *
+            (sd.respawn / D.RESPAWN) / sd.structSpeed
       });
     } else {
       W.respawnQueue.push({ layer: layer, at: U.now() + S.derive().respawn * 1000 });
@@ -145,7 +149,8 @@
     var b = W.bounds();
     var defs = D.structuresFor(layer, S.get().dim);
     if (!defs.length) return 0;
-    return U.clamp(Math.round(b.size * b.size * D.STRUCT_DENSITY), 1, 8);
+    var extra = S.derive().structSlots;
+    return U.clamp(Math.round(b.size * b.size * D.STRUCT_DENSITY) + extra, 1, 14);
   };
 
   /* the typical toughness of rock at this depth, weighted by what spawns */
@@ -256,6 +261,21 @@
   /* ---------------------------------------------------------
      Island expansion
      --------------------------------------------------------- */
+  /* damage every ore node on a layer; returns the ones that broke.
+     Structures are left alone - a find is dug out by hand. */
+  W.quake = function (layer, damage) {
+    var map = W.nodes[layer] || {}, broken = [];
+    for (var k in map) {
+      var n = map[k];
+      if (n.struct) continue;
+      n.hp -= damage;
+      n.hit = 0.12;
+      if (n.hp <= 0) broken.push(n);
+    }
+    for (var i = 0; i < broken.length; i++) W.removeNode(layer, broken[i]);
+    return broken;
+  };
+
   W.expandCost = function () { return D.expandCost(S.get().size); };
 
   W.canExpand = function () {

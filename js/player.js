@@ -127,19 +127,25 @@
     if (node.struct) { breakStructure(layer, node); return; }
     var g = S.get(), d = S.derive();
     var ore = D.ORE_BY_ID[node.ore];
-    var amount = 1 + (Math.random() < d.doubleChance ? 1 : 0);
+    var grade = D.GRADES[node.grade || 0] || D.GRADES[0];
+    var amount = (1 + (Math.random() < d.doubleChance ? 1 : 0)) * grade.yield;
 
     var got = S.addOre(ore.id, amount);
     g.stats.nodes++;
-    S.addXp(D.xpFromOre(ore) * (1 + layer * 0.15));
+    S.addXp(D.xpFromOre(ore) * (1 + layer * 0.15) * (node.grade ? 2 : 1));
+    if (node.grade) {
+      g.stats.grades[grade.id] = (g.stats.grades[grade.id] || 0) + 1;
+    }
 
     var cx = node.x + 0.5, cy = node.y + 0.5;
-    R.burst(cx, cy, ore.gem, 10);
+    R.burst(cx, cy, ore.gem, node.grade ? 18 : 10);
     R.burst(cx, cy, U.shade(ore.color, -30), 6);
-    R.kick(2.2);
+    if (node.grade) R.burst(cx, cy, grade.glow, 14);
+    R.kick(node.grade ? 3.6 : 2.2);
 
     if (got > 0) {
-      R.floatText(cx, cy, '+' + got, ore.gem, 2);
+      R.floatText(cx, cy, '+' + got, node.grade ? grade.glow : ore.gem, 2);
+      if (node.grade) R.floatText(cx, cy, grade.name, grade.color, 1);
     } else {
       R.floatText(cx, cy, 'FULL', '#e05b6a', 1);
       if (me.bumpMsg <= 0) { UI.toast('Bag full - visit the market pad', 'bad'); me.bumpMsg = 6; }
@@ -147,7 +153,7 @@
 
     W.removeNode(layer, node);
     me.target = null;
-    Game.onNodeBroken(ore, layer);
+    Game.onNodeBroken(ore, layer, node.grade || 0);
   }
 
   function mineTick(dt, wantMine) {
@@ -301,8 +307,10 @@
        way: it is a rare find, so we step aside instead. */
     var stuck = W.nodeAt(g.layer, Math.floor(me.x), Math.floor(me.y));
     if (stuck) {
+      /* collect it rather than deleting it - standing on a seam should
+         never silently destroy the ore in it */
       if (stuck.struct) nudgeOff(g.layer, stuck);
-      else W.removeNode(g.layer, stuck);
+      else breakNode(g.layer, stuck);
     }
 
     mineTick(dt, input.mine);
