@@ -10,6 +10,7 @@
   var canvas, running = false, lastT = 0, acc = 0;
   var saveTimer = 0, achTimer = 0, tipTimer = 0, worldTimer = 0;
   var lastLevel = 1;
+  var saveWarned = false;
 
   var keys = {};
   var touchDir = { up: 0, down: 0, left: 0, right: 0 };
@@ -214,7 +215,12 @@
     if (e.target && /input|textarea/i.test(e.target.tagName)) return;
     keys[e.code] = true;
 
-    if (e.code === 'Escape') { UI.close(); Game.clearBuildMode(); return; }
+    if (e.code === 'Escape') {
+      if (UI.modalOpen()) { UI.closeModal(); return; }
+      UI.close();
+      Game.clearBuildMode();
+      return;
+    }
     if (PANEL_KEYS[e.code]) { UI.open(PANEL_KEYS[e.code]); e.preventDefault(); return; }
 
     if (e.code === 'KeyE') { contextDown(); e.preventDefault(); }
@@ -341,7 +347,8 @@
       else UI.open('build');
     });
     U.$('#btnSave').addEventListener('click', function () {
-      S.save(); UI.toast('Saved');
+      if (S.save()) UI.toast('Saved');
+      else UI.toast('This browser is blocking saves - export your save instead', 'bad');
     });
 
     /* touch pad */
@@ -452,7 +459,13 @@
     }
 
     saveTimer -= dt;
-    if (saveTimer <= 0) { saveTimer = 15; S.save(); }
+    if (saveTimer <= 0) {
+      saveTimer = 15;
+      if (!S.save() && !saveWarned) {
+        saveWarned = true;
+        UI.toast('This browser is blocking saves - your progress will not persist', 'bad');
+      }
+    }
 
     tipTimer -= dt;
     if (tipTimer <= 0) {
@@ -592,9 +605,12 @@
     });
 
     wipeBtn.addEventListener('click', function () {
-      if (!confirm('Start a brand new game? Your current save is deleted.')) return;
-      S.wipe();
-      location.reload();
+      UI.confirm('Start over',
+        'Your current island, cores and perks are all deleted, and a fresh game begins.' +
+        '<br><br>This cannot be undone.',
+        'START A NEW GAME',
+        function () { S.wipe(); location.reload(); },
+        true);
     });
 
     window.addEventListener('beforeunload', function () { if (running) S.save(); });

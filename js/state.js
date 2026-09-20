@@ -602,13 +602,22 @@
   /* ---------------------------------------------------------
      Save / load
      --------------------------------------------------------- */
+  /* U.store.set swallows its own failure, so report what it actually did -
+     telling someone their progress is saved when it is not is worse than
+     telling them it failed */
   S.save = function () {
     if (!game) return false;
     game.lastSeen = U.now();
     try {
-      U.store.set(D.SAVE_KEY, JSON.stringify(game));
-      return true;
+      return U.store.set(D.SAVE_KEY, JSON.stringify(game));
     } catch (e) { return false; }
+  };
+
+  /* the live game as a save string, independent of whether storage works */
+  S.serialise = function () {
+    if (!game) return '';
+    game.lastSeen = U.now();
+    try { return JSON.stringify(game); } catch (e) { return ''; }
   };
 
   S.load = function () {

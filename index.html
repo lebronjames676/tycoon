@@ -102,6 +102,16 @@
     <button id="tutNext" class="hidden">GOT IT</button>
   </aside>
 
+  <!-- ===== Modal: replaces window.confirm/prompt, which a sandboxed
+       iframe silently ignores ===== -->
+  <div id="modal" class="hidden">
+    <section class="modalBox">
+      <h2 id="modalTitle"></h2>
+      <div id="modalBody"></div>
+      <div id="modalActions"></div>
+    </section>
+  </div>
+
   <div id="toasts"></div>
 
   <div id="splash">

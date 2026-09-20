@@ -40,6 +40,90 @@
     }
 
     buildSlots();
+    modalInit();
+  };
+
+  /* ---------------------------------------------------------
+     Modal - stands in for window.confirm and window.prompt,
+     which a sandboxed iframe (which is how the game is
+     embedded when published) silently ignores.
+     --------------------------------------------------------- */
+  var modal = {};
+  var modalCancel = null;
+
+  function modalInit() {
+    modal.root = U.$('#modal');
+    modal.box = modal.root ? modal.root.querySelector('.modalBox') : null;
+    modal.title = U.$('#modalTitle');
+    modal.body = U.$('#modalBody');
+    modal.actions = U.$('#modalActions');
+    if (!modal.root) return;
+    modal.root.addEventListener('mousedown', function (e) {
+      if (e.target === modal.root) UI.closeModal();
+    });
+  }
+
+  UI.modalOpen = function () {
+    return !!(modal.root && !modal.root.classList.contains('hidden'));
+  };
+
+  UI.closeModal = function () {
+    if (!modal.root) return;
+    modal.root.classList.add('hidden');
+    modal.body.innerHTML = '';
+    modal.actions.innerHTML = '';
+    var cb = modalCancel;
+    modalCancel = null;
+    if (cb) cb();
+  };
+
+  /* opts: {title, html, yes, no, danger, onYes, onNo, input, value, multiline, focus} */
+  UI.modal = function (opts) {
+    if (!modal.root) modalInit();
+    if (!modal.root) return;
+    opts = opts || {};
+
+    modal.box.classList.toggle('danger', !!opts.danger);
+    modal.title.textContent = opts.title || '';
+    modal.body.innerHTML = opts.html || '';
+
+    var field = null;
+    if (opts.input) {
+      field = document.createElement(opts.multiline ? 'textarea' : 'input');
+      if (opts.multiline) field.rows = 4;
+      field.value = opts.value || '';
+      if (opts.readonly) field.readOnly = true;
+      if (opts.placeholder) field.placeholder = opts.placeholder;
+      modal.body.appendChild(field);
+    }
+
+    modal.actions.innerHTML = '';
+    modalCancel = opts.onNo || null;
+
+    if (opts.no !== null) {
+      var noBtn = U.el('button', 'ghost', opts.no || 'CANCEL');
+      noBtn.addEventListener('click', function () { UI.closeModal(); });
+      modal.actions.appendChild(noBtn);
+    }
+
+    var yesBtn = U.el('button', opts.danger ? 'danger' : '', opts.yes || 'CONFIRM');
+    yesBtn.addEventListener('click', function () {
+      var value = field ? field.value : null;
+      modalCancel = null;                     /* a yes is not a cancel */
+      UI.closeModal();
+      if (opts.onYes) opts.onYes(value);
+    });
+    modal.actions.appendChild(yesBtn);
+
+    modal.root.classList.remove('hidden');
+    setTimeout(function () {
+      if (field && opts.focus !== false) { field.focus(); field.select(); }
+      else yesBtn.focus();
+    }, 20);
+  };
+
+  UI.confirm = function (title, html, yes, onYes, danger) {
+    UI.modal({ title: title, html: html, yes: yes, onYes: onYes, danger: danger });
   };
 
   /* ---------------------------------------------------------
@@ -156,7 +240,7 @@
     dom.overlay.classList.add('hidden');
   };
 
-  UI.isOpen = function () { return openPanel !== null; };
+  UI.isOpen = function () { return openPanel !== null || UI.modalOpen(); };
 
   UI.refresh = function () {
     if (!openPanel) return;
@@ -1023,10 +1107,12 @@
     doRebirth: function () {
       var pending = S.pendingCores();
       if (pending <= 0) return;
-      if (!confirm('Rebirth now for ' + pending + ' Prestige Cores?\n\n' +
-                   'Money, ore, gear, buildings, island size and depth unlocks all reset.\n' +
-                   'Cores, perks and achievements are kept forever.')) return;
-      Game.doRebirth();
+      UI.confirm('Rebirth',
+        'Trade this life for <b>' + U.fmt(pending) + ' Prestige Cores</b>?<br><br>' +
+        'Money, ore, gear, buildings, island size and depth unlocks all reset. ' +
+        'Cores, perks, milestones and achievements are kept forever.',
+        'REBIRTH FOR ' + U.fmt(pending),
+        function () { Game.doRebirth(); });
     },
 
     claimContract: function (data) {
@@ -1081,38 +1167,63 @@
 
     replayTutorial: function () { UI.close(); TUT.restart(); },
 
-    saveNow: function () { S.save(); UI.toast('Saved'); },
+    saveNow: function () {
+      if (S.save()) UI.toast('Saved');
+      else UI.toast('This browser is blocking saves - export your save instead', 'bad');
+    },
 
     exportSave: function () {
-      var raw = U.store.get(D.SAVE_KEY) || '';
-      var b64 = btoa(unescape(encodeURIComponent(raw)));
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(b64).then(function () {
-          UI.toast('Save copied to clipboard', 'gold');
-        }, function () { window.prompt('Copy your save:', b64); });
-      } else {
-        window.prompt('Copy your save:', b64);
-      }
+      S.save();
+      /* serialise the live game rather than reading it back, so export still
+         works when the browser refuses to store anything */
+      var raw = S.serialise() || U.store.get(D.SAVE_KEY) || '';
+      var b64 = raw ? btoa(unescape(encodeURIComponent(raw))) : '';
+      UI.modal({
+        title: 'Your save',
+        html: 'Copy this somewhere safe. Paste it back in with <b>Paste a save</b> to restore ' +
+              'this island on any browser.',
+        input: true, multiline: true, value: b64, readonly: true,
+        yes: 'COPY', no: 'CLOSE',
+        onYes: function (value) {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(value).then(
+              function () { UI.toast('Save copied to clipboard', 'gold'); },
+              function () { UI.toast('Select the text and copy it by hand', 'bad'); });
+          } else {
+            UI.toast('Select the text and copy it by hand');
+          }
+        }
+      });
     },
 
     importSave: function () {
-      var b64 = window.prompt('Paste a save string:');
-      if (!b64) return;
-      try {
-        var raw = decodeURIComponent(escape(atob(b64.trim())));
-        JSON.parse(raw);
-        U.store.set(D.SAVE_KEY, raw);
-        UI.toast('Save loaded - reloading...', 'gold');
-        setTimeout(function () { location.reload(); }, 600);
-      } catch (e) {
-        UI.toast('That save string is not valid', 'bad');
-      }
+      UI.modal({
+        title: 'Paste a save',
+        html: 'This replaces the island you are playing now. There is no undo.',
+        input: true, multiline: true, placeholder: 'Paste your save string here',
+        yes: 'LOAD IT', danger: true,
+        onYes: function (b64) {
+          if (!b64) return;
+          try {
+            var raw = decodeURIComponent(escape(atob(String(b64).trim())));
+            JSON.parse(raw);
+            U.store.set(D.SAVE_KEY, raw);
+            UI.toast('Save loaded - reloading...', 'gold');
+            setTimeout(function () { location.reload(); }, 600);
+          } catch (e) {
+            UI.toast('That save string is not valid', 'bad');
+          }
+        }
+      });
     },
 
     wipe: function () {
-      if (!confirm('Delete your save and start over? This cannot be undone.')) return;
-      S.wipe();
-      location.reload();
+      UI.confirm('Delete everything',
+        'This erases your island, your cores, your perks and every achievement. ' +
+        'It cannot be undone.<br><br>Export your save first if you might want it back.',
+        'DELETE IT ALL',
+        function () { S.wipe(); location.reload(); },
+        true);
     }
   };
 
