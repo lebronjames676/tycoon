@@ -89,8 +89,14 @@
   };
 
   Game.doRebirth = function () {
+    var before = S.get().rebirths;
     var gained = S.rebirth();
     if (!gained) return;
+    var hit = null;
+    for (var i = 0; i < D.REBIRTH_MILESTONES.length; i++) {
+      var m = D.REBIRTH_MILESTONES[i];
+      if (m.at > before && m.at <= S.get().rebirths) hit = m;
+    }
     W.reset();
     W.populate(true);
     S.ensureContracts();
@@ -107,7 +113,10 @@
       '<p>The island crumbles and reforms. You now hold <b>' + U.fmt(S.get().cores) +
       '</b> cores across <b>' + S.get().rebirths + '</b> rebirths.</p>' +
       '<p>Every core is +3% money and +1% mining power. Spend them on perks in the Rebirth panel.</p>' +
+      (hit ? '<p style="color:var(--violet)"><b>Rebirth milestone: ' + U.esc(hit.name) + '</b><br>' +
+             U.esc(hit.desc) + '</p>' : '') +
       '<button data-act="none">GET BACK TO WORK</button></div>');
+    if (hit) UI.toast('Rebirth milestone: ' + hit.name, 'epic');
   };
 
   /* ---------------------------------------------------------
@@ -115,7 +124,7 @@
      --------------------------------------------------------- */
   var PANEL_KEYS = {
     KeyI: 'inventory', KeyC: 'craft', KeyB: 'build', KeyX: 'island',
-    KeyV: 'depths', KeyR: 'rebirth', KeyT: 'stats', KeyJ: 'contracts', KeyK: 'storage', Slash: 'help'
+    KeyV: 'depths', KeyR: 'rebirth', KeyT: 'stats', KeyJ: 'contracts', KeyK: 'storage', KeyY: 'quests', Slash: 'help'
   };
 
   function onKeyDown(e) {
@@ -336,6 +345,18 @@
     achTimer -= dt;
     if (achTimer <= 0) {
       achTimer = 1;
+
+      var quests = S.checkQuests();
+      for (var qi = 0; qi < quests.length; qi++) {
+        var q = quests[qi];
+        var reward = [];
+        if (q.money) reward.push(U.fmtMoney(q.money));
+        if (q.cores) reward.push(q.cores + ' cores');
+        UI.toast('Quest complete: ' + q.name + (reward.length ? ' (+' + reward.join(', ') + ')' : ''), 'gold');
+        R.floatText(PL.get().x, PL.get().y, 'QUEST', '#f5c04e', 2);
+        Game.sfx('level');
+      }
+
       var got = S.checkAchievements();
       for (var i = 0; i < got.length; i++) {
         UI.toast('Achievement: ' + got[i].name +
@@ -369,6 +390,14 @@
     if (g.layer === 0 && W.nearestWarehouse(PL.get().x, PL.get().y, 2.2)) {
       UI.setHint('<b style="color:var(--teal)">Warehouse</b> - dropping off everything marked to keep. ' +
         'Stored <b>' + U.fmt(S.stored()) + ' / ' + U.fmt(S.storageCap()) + '</b>');
+      return;
+    }
+    /* alternate between the current quest and a rotating tip */
+    var quest = S.activeQuest();
+    if (quest && (g.tip % 3) !== 2) {
+      var pr = S.questProgress(quest);
+      UI.setHint('<b style="color:var(--gold)">Quest:</b> ' + U.esc(quest.name) + ' &mdash; ' +
+        U.esc(quest.desc) + ' <b>(' + U.fmt(pr.now) + '/' + U.fmt(pr.goal) + ')</b>');
       return;
     }
     UI.setHint('<b>Tip:</b> ' + D.TIPS[g.tip]);

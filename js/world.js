@@ -220,6 +220,7 @@
     S.spend(cost);
     g.buildings.push({ id: id, x: x, y: y, t: U.now() });
     g.buildCount[id] = (g.buildCount[id] || 0) + 1;
+    g.stats.built = (g.stats.built || 0) + 1;
     /* nothing is kept until the player says so - a warehouse must never
        silently switch off the income they already rely on */
     return { ok: true, cost: cost, first: first };

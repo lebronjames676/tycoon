@@ -91,11 +91,20 @@
      Effects
      --------------------------------------------------------- */
   R.floatText = function (wx, wy, text, color, scale) {
+    /* if something is already popping up here, stack on top of it rather
+       than printing one number over another */
+    var lift = 0;
+    for (var i = floats.length - 1; i >= 0 && i >= floats.length - 6; i--) {
+      var f = floats[i];
+      if (f.life > 0.75 && Math.abs(f.x - wx) < 0.9 && Math.abs(f.y - wy) < 0.9) {
+        lift = Math.max(lift, f.rise + 9);
+      }
+    }
     floats.push({
       x: wx, y: wy, text: String(text), color: color || '#ffffff',
-      scale: scale || 1, life: 1.15, rise: 0
+      scale: scale || 1, life: 1.15, rise: lift
     });
-    if (floats.length > 40) floats.shift();
+    if (floats.length > 24) floats.shift();
   };
 
   R.burst = function (wx, wy, color, n) {

@@ -34,7 +34,7 @@ The Field Manual panel can export the save as a string and paste one back in.
 | Ride the mineshaft down / up | `E` / `Q` |
 | Place or demolish a building | click / right-click in build mode |
 | Zoom | `+` `-` or the scroll wheel |
-| Panels | `I` bag, `C` craft, `B` build, `K` warehouse, `X` island, `V` depths, `J` jobs, `R` rebirth, `T` records, `?` help |
+| Panels | `I` bag, `C` craft, `B` build, `K` warehouse, `X` island, `V` depths, `Y` quests, `J` jobs, `R` rebirth, `T` records, `?` help |
 | Mute | `M` |
 | Close a panel | `ESC` |
 
@@ -54,10 +54,12 @@ automatically.
    sold by the market pad, your conveyors or machine overflow, and still count
    towards recipes and contracts. Everything you leave on *sell* behaves as
    before, so building one never quietly switches off your income.
-5. **Build.** Nine machines work around the clock, including while the game is
-   closed. Miner's huts and drills dig, generators power the drills, conveyors
-   ship ore to market, smelters and vaults raise the price, and the void altar
-   bends prestige maths in your favour.
+5. **Build.** Eighteen machines work around the clock, including while the game
+   is closed. Huts, drills, excavators, deep rigs and tunnel borers dig;
+   generators and reactors power them; conveyors and mag conveyors ship ore to
+   market; smelters, vaults and refineries raise the price. Bulldozers clear
+   rubble so veins respawn faster, jackhammer crews boost *your* own swing,
+   ore scanners surface rarer ore and blast sheds double your drops.
 6. **Expand.** A wider island carries more ore veins on every layer and more room
    for machines, up to 20×20.
 7. **Dig deeper.** Six layers, from the Surface down to The Void. Each multiplies
@@ -65,9 +67,15 @@ automatically.
    layer you have unlocked.
 8. **Take contracts.** The sky guild posts three delivery jobs at a time that pay
    roughly triple the market rate plus a lump of experience.
-9. **Rebirth.** Once a life has earned enough, trade the island, the money, the
-   gear and the machines for Prestige Cores. Cores are permanent (+3% money and
-   +1% mining power each) and buy twelve stacking perks.
+9. **Follow the quest log.** Twenty-six quests form one long chain that carries
+   across rebirths, from breaking your first ten nodes to earning a trillion
+   dollars. They complete themselves the moment you meet them.
+10. **Rebirth.** Once a life has earned enough, trade the island, the money, the
+    gear and the machines for Prestige Cores. Cores are permanent (+3% money and
+    +1% mining power each) and buy twelve stacking perks. Twelve **rebirth
+    milestones** unlock on rebirth count alone — seed money at 3, the Shallow
+    Caves pre-opened at 5, a wider starting island at 12, a prefab camp at 35,
+    double cores at 100.
 
 ## Mechanics in the box
 
@@ -78,7 +86,11 @@ automatically.
 - Warehouses with per-ore keep/sell selection, feeding crafting and contracts
 - A power grid: drills run at reduced efficiency when generators cannot keep up
 - Offline production with a configurable rate and an eight-hour cap
-- Twenty achievements paying out cash and cores
+- A 26-quest chain with live progress tracking in the action bar
+- Seven milestone tracks, eight tiers each, paying permanent stacking bonuses
+  read from all-time totals so they survive every rebirth
+- Twelve rebirth milestones keyed to rebirth count alone
+- Thirty-nine achievements paying out cash and cores
 - Repeatable guild contracts with a reroll cost
 - Twelve prestige perks including Head Start, which seeds the next run with gear
 - Save export/import, zoom, mute, mobile controls

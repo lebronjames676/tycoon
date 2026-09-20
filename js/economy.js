@@ -7,11 +7,12 @@
   var E = {};
 
   var oreAccum = 0, sellAccum = 0;
+  var popAccum = 0, popTimer = 0;
   E.lastProduced = 0;       /* ore/sec, for the stats panel */
   E.lastIncome = 0;         /* $/sec rolling estimate       */
   var incomeWindow = 0, incomeAccum = 0;
 
-  E.reset = function () { oreAccum = 0; sellAccum = 0; incomeAccum = 0; incomeWindow = 0; };
+  E.reset = function () { oreAccum = 0; sellAccum = 0; incomeAccum = 0; incomeWindow = 0; popAccum = 0; popTimer = 0; };
 
   /* ---------------------------------------------------------
      Production rates
@@ -23,8 +24,9 @@
       var def = D.BUILD_BY_ID[g.buildings[i].id];
       if (!def) continue;
       var eff = def.power < 0 ? pw.efficiency : 1;
-      if (def.id === 'convey') sell += def.rate * eff;
-      else if (def.rate) ore += def.rate * eff;
+      if (!def.rate) continue;
+      if (def.ships || def.id === 'convey') sell += def.rate * eff;
+      else ore += def.rate * eff;
     }
     return {
       ore: ore * d.buildMult,
@@ -154,10 +156,19 @@
         var units = Math.floor(sellAccum);
         sellAccum -= units;
         var res = E.sellUnits(units, 1);
-        if (res.money > 0 && Math.random() < 0.25) {
-          var pl = PL.get();
-          R.floatText(pl.x, pl.y - 0.6, '+' + U.fmtMoney(res.money), '#8ee6c8', 1);
-        }
+        popAccum += res.money;
+      }
+    }
+
+    /* one aggregated popup instead of a pile of them: a busy conveyor line
+       can settle dozens of sales a second */
+    popTimer -= dt;
+    if (popTimer <= 0) {
+      popTimer = 1.6;
+      if (popAccum > 0) {
+        var pl = PL.get();
+        R.floatText(pl.x, pl.y - 0.6, '+' + U.fmtMoney(popAccum), '#8ee6c8', 1);
+        popAccum = 0;
       }
     }
 

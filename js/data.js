@@ -162,7 +162,29 @@
     { id: 'rig',    name: 'Deep Rig',    icon: '\u{1F3D7}',  cost: 2.5e7,  growth: 2.00, power: -25,
       desc: 'Industrial bore: 12 ore/sec, always from your deepest layer.', rate: 12 },
     { id: 'altar',  name: 'Void Altar',  icon: '\u{1F52E}',  cost: 4.0e9,  growth: 2.20, power: -15,
-      desc: 'Hums with strange math. +8% prestige cores on rebirth.', bonus: 0.08 }
+      desc: 'Hums with strange math. +8% prestige cores on rebirth.', bonus: 0.08 },
+
+    /* ---- heavy digging equipment ---- */
+    { id: 'dozer',  name: 'Bulldozer',   icon: '\u{1F69C}',  cost: 3200,   growth: 1.66, power: -4,
+      desc: 'Shoves the rubble aside so fresh veins surface faster. Ore nodes respawn 8% quicker each.',
+      respawn: 0.08 },
+    { id: 'jack',   name: 'Jackhammer Crew', icon: '\u{1F528}', cost: 24000, growth: 1.78, power: -6,
+      desc: 'A crew softens the rock ahead of you. +6% to your own mining power each.', playerPower: 0.06 },
+    { id: 'excav',  name: 'Excavator',   icon: '\u{1F6A7}',  cost: 180000, growth: 1.86, power: -18,
+      desc: 'Tracked digger with a six tonne bucket: 5 ore/sec from your deepest layer.', rate: 5 },
+    { id: 'scanner',name: 'Ore Scanner', icon: '\u{1F4E1}',  cost: 1.4e6,  growth: 1.92, power: -10,
+      desc: 'Sweeps the rock for the good stuff. +4% chance of rarer ore spawning each.', luck: 0.04 },
+    { id: 'reactor',name: 'Reactor',     icon: '\u2622',     cost: 6.0e6,  growth: 1.90, power: 400,
+      desc: 'One reactor replaces a field of generators: 400 power.' },
+    { id: 'blast',  name: 'Blast Shed',  icon: '\u{1F9E8}',  cost: 3.5e7,  growth: 2.00, power: -12,
+      desc: 'Controlled charges shatter the seams. +3% chance any node drops double ore each.',
+      doubleOre: 0.03 },
+    { id: 'borer',  name: 'Tunnel Borer',icon: '\u2699',     cost: 6.0e8,  growth: 2.05, power: -60,
+      desc: 'A rotating cutterhead the width of the island: 60 ore/sec.', rate: 60 },
+    { id: 'maglev', name: 'Mag Conveyor',icon: '\u{1F684}',  cost: 2.0e9,  growth: 2.05, power: -30,
+      desc: 'Frictionless ore freight: ships 40 ore/sec to market.', rate: 40, ships: true },
+    { id: 'refine', name: 'Refinery',    icon: '\u{1F3ED}',  cost: 9.0e9,  growth: 2.10, power: -40,
+      desc: 'Cracks ore down to pure metal before it is weighed. +25% sell value each.', bonus: 0.25 }
   ];
   D.BUILD_BY_ID = {};
   D.BUILDINGS.forEach(function (b) { D.BUILD_BY_ID[b.id] = b; });
@@ -245,7 +267,168 @@
     { id: 'reb10',    name: 'Eternal Return',   desc: 'Rebirth 10 times.',                     cores: 15, money: 0,    test: function (s) { return s.rebirths >= 10; } },
     { id: 'ware',     name: 'Logistics',        desc: 'Build your first warehouse.',           cores: 0, money: 1200,  test: function (s) { return (s.buildings || []).some(function (b) { return b.id === 'store'; }); } },
     { id: 'jobs',     name: 'Guild Favourite',  desc: 'Complete 25 guild contracts.',          cores: 3, money: 2e5,  test: function (s) { return (s.contractsDone || 0) >= 25; } },
+    { id: 'dozer',    name: 'Ground Crew',      desc: 'Build a bulldozer.',                    cores: 0, money: 5000,  test: function (s) { return D.ownsOf(s, 'dozer') >= 1; } },
+    { id: 'jack',     name: 'Softened Up',      desc: 'Hire a jackhammer crew.',               cores: 1, money: 20000, test: function (s) { return D.ownsOf(s, 'jack') >= 1; } },
+    { id: 'excav',    name: 'Heavy Plant',      desc: 'Put an excavator to work.',             cores: 2, money: 2e5,   test: function (s) { return D.ownsOf(s, 'excav') >= 1; } },
+    { id: 'fleet',    name: 'Whole Fleet',      desc: 'Own 5 excavators at once.',             cores: 4, money: 2e6,   test: function (s) { return D.ownsOf(s, 'excav') >= 5; } },
+    { id: 'reactor',  name: 'Going Nuclear',    desc: 'Power the island with a reactor.',      cores: 3, money: 1e6,   test: function (s) { return D.ownsOf(s, 'reactor') >= 1; } },
+    { id: 'borer',    name: 'Straight Through', desc: 'Build a tunnel borer.',                 cores: 8, money: 1e8,   test: function (s) { return D.ownsOf(s, 'borer') >= 1; } },
+    { id: 'blast',    name: 'Fire in the Hole', desc: 'Build a blast shed.',                   cores: 4, money: 1e7,   test: function (s) { return D.ownsOf(s, 'blast') >= 1; } },
+    { id: 'every',    name: 'One of Everything',desc: 'Own at least one of every building.',   cores: 12, money: 5e8,  test: function (s) { return D.BUILDINGS.every(function (b) { return D.ownsOf(s, b.id) >= 1; }); } },
+    { id: 'quest10',  name: 'Errand Runner',    desc: 'Finish 10 quests.',                     cores: 3, money: 1e5,   test: function (s) { return (s.quest || 0) >= 10; } },
+    { id: 'quest20',  name: 'Quest Hunter',     desc: 'Finish 20 quests.',                     cores: 10, money: 1e7,  test: function (s) { return (s.quest || 0) >= 20; } },
+    { id: 'questAll', name: 'Nothing Left',     desc: 'Finish every quest in the log.',        cores: 50, money: 1e9,  test: function (s) { return (s.quest || 0) >= D.QUESTS.length; } },
+    { id: 'mile1',    name: 'Marked Progress',  desc: 'Complete 10 milestone tiers.',          cores: 3, money: 2e5,   test: function (s) { return D.MILESTONES.reduce(function (a, t) { return a + D.milestoneTier(t, s); }, 0) >= 10; } },
+    { id: 'mile2',    name: 'Record Holder',    desc: 'Complete 30 milestone tiers.',          cores: 12, money: 5e7,  test: function (s) { return D.MILESTONES.reduce(function (a, t) { return a + D.milestoneTier(t, s); }, 0) >= 30; } },
+    { id: 'mileAll',  name: 'Off the Charts',   desc: 'Complete every milestone tier.',        cores: 80, money: 1e10, test: function (s) { return D.MILESTONES.every(function (t) { return D.milestoneTier(t, s) >= t.tiers.length; }); } },
+    { id: 'reb25',    name: 'Core Resonance',   desc: 'Reach 25 rebirths.',                    cores: 40, money: 0,    test: function (s) { return s.rebirths >= 25; } },
+    { id: 'reb100',   name: 'Eternal Engine',   desc: 'Reach 100 rebirths.',                   cores: 250, money: 0,   test: function (s) { return s.rebirths >= 100; } },
+    { id: 'power',    name: 'Grid Operator',    desc: 'Supply 1,000 power.',                   cores: 5, money: 5e6,   test: function (s) { var p = 0; s.buildings.forEach(function (b) { var d = D.BUILD_BY_ID[b.id]; if (d && d.power > 0) p += d.power; }); return p >= 1000; } },
+    { id: 'hoard',    name: 'Full Sheds',       desc: 'Fill 10,000 ore of warehouse space.',   cores: 6, money: 1e7,   test: function (s) { var n = 0; for (var k in (s.store || {})) n += s.store[k]; return n >= 10000; } },
     { id: 'star',     name: 'Stardust',         desc: 'Mine a Star Core.',                     cores: 5, money: 1e6,   test: function (s) { return (s.stats.mined.starcore || 0) >= 1; } }
+  ];
+
+  /* ---------------------------------------------------------
+     Quests - one long guided chain, carried across rebirths.
+     prog(s) returns current progress, goal is the target.
+     --------------------------------------------------------- */
+  function rareMined(s) {
+    var n = 0;
+    for (var i = 6; i < D.ORES.length; i++) n += s.stats.mined[D.ORES[i].id] || 0;
+    return n;
+  }
+  D.rareMined = rareMined;
+
+  function ownsProducer(s) {
+    var n = 0;
+    for (var i = 0; i < s.buildings.length; i++) {
+      var d = D.BUILD_BY_ID[s.buildings[i].id];
+      if (d && d.rate && !d.ships && d.id !== 'convey') n++;
+    }
+    return n;
+  }
+  function ownsOf(s, id) {
+    var n = 0;
+    for (var i = 0; i < s.buildings.length; i++) if (s.buildings[i].id === id) n++;
+    return n;
+  }
+  D.ownsOf = ownsOf;
+
+  D.QUESTS = [
+    { name: 'Break the Ground',  desc: 'Swing at the rock and break 10 ore nodes.',
+      goal: 10,    prog: function (s) { return s.stats.nodes; },         money: 250 },
+    { name: 'First Payday',      desc: 'Carry ore to the market pad and earn $1,000.',
+      goal: 1000,  prog: function (s) { return s.stats.totalEarned; },   money: 400, xp: 40 },
+    { name: 'A Better Pick',     desc: 'Craft the Stone Pickaxe at the workbench.',
+      goal: 1,     prog: function (s) { return s.gear.pick; },           money: 700 },
+    { name: 'Hired Help',        desc: 'Build anything at all - a hut is the cheapest start.',
+      goal: 1,     prog: function (s) { return s.buildings.length; },    money: 1200 },
+    { name: 'Somewhere to Put It', desc: 'Build a warehouse so ore stops overflowing.',
+      goal: 1,     prog: function (s) { return ownsOf(s, 'store'); },    money: 2000 },
+    { name: 'Down the Shaft',    desc: 'Unlock the Shallow Caves.',
+      goal: 2,     prog: function (s) { return s.layersUnlocked; },      money: 4000, xp: 200 },
+    { name: 'Room to Grow',      desc: 'Expand the island once.',
+      goal: 7,     prog: function (s) { return s.size; },                money: 7000 },
+    { name: 'Guild Standing',    desc: 'Complete 3 guild contracts.',
+      goal: 3,     prog: function (s) { return s.contractsDone || 0; },  money: 12000, cores: 1 },
+    { name: 'Keep the Lights On', desc: 'Own 3 generators so nothing runs at half speed.',
+      goal: 3,     prog: function (s) { return ownsOf(s, 'gen'); },      money: 25000 },
+    { name: 'Clear the Rubble',  desc: 'Build a bulldozer to speed up ore respawns.',
+      goal: 1,     prog: function (s) { return ownsOf(s, 'dozer'); },    money: 40000 },
+    { name: 'The Night Shift',   desc: 'Own 5 machines that dig for you.',
+      goal: 5,     prog: function (s) { return ownsProducer(s); },       money: 90000, xp: 1200 },
+    { name: 'Deeper Still',      desc: 'Unlock the Deep Caves.',
+      goal: 3,     prog: function (s) { return s.layersUnlocked; },      money: 220000 },
+    { name: 'Seasoned Miner',    desc: 'Reach mining level 20.',
+      goal: 20,    prog: function (s) { return s.level; },               money: 450000, cores: 2 },
+    { name: 'Heavy Equipment',   desc: 'Put an excavator on the island.',
+      goal: 1,     prog: function (s) { return ownsOf(s, 'excav'); },    money: 1.2e6 },
+    { name: 'Crystal Charter',   desc: 'Unlock the Crystal Depths.',
+      goal: 4,     prog: function (s) { return s.layersUnlocked; },      money: 4e6, xp: 2e4 },
+    { name: 'Seven Figures',     desc: 'Earn $5,000,000 in a single life.',
+      goal: 5e6,   prog: function (s) { return s.lifeEarned; },          money: 6e6, cores: 3 },
+    { name: 'Start Again',       desc: 'Rebirth for the first time.',
+      goal: 1,     prog: function (s) { return s.rebirths; },            cores: 6 },
+    { name: 'Second Wind',       desc: 'Earn $20,000,000 in a life after your first rebirth.',
+      goal: 2e7,   prog: function (s) { return s.rebirths >= 1 ? s.lifeEarned : 0; }, cores: 10 },
+    { name: 'Into the Magma',    desc: 'Unlock the Magma Core.',
+      goal: 5,     prog: function (s) { return s.layersUnlocked; },      cores: 14 },
+    { name: 'Industrialist',     desc: 'Have 40 buildings standing at once.',
+      goal: 40,    prog: function (s) { return s.buildings.length; },    cores: 20 },
+    { name: 'Continental',       desc: 'Grow the island to 14 tiles across.',
+      goal: 14,    prog: function (s) { return s.size; },                cores: 28 },
+    { name: 'Boring Company',    desc: 'Build a tunnel borer.',
+      goal: 1,     prog: function (s) { return ownsOf(s, 'borer'); },    cores: 40 },
+    { name: 'The Void Opens',    desc: 'Unlock The Void, the deepest layer there is.',
+      goal: 6,     prog: function (s) { return s.layersUnlocked; },      cores: 60 },
+    { name: 'Star Forged',       desc: 'Craft the Starforged Pickaxe.',
+      goal: 11,    prog: function (s) { return s.gear.pick; },           cores: 120 },
+    { name: 'Eternal Return',    desc: 'Rebirth 10 times.',
+      goal: 10,    prog: function (s) { return s.rebirths; },            cores: 200 },
+    { name: 'Ascendant',         desc: 'Earn one trillion dollars across all lives.',
+      goal: 1e12,  prog: function (s) { return s.stats.totalEarned; },   cores: 500 }
+  ];
+  D.QUESTS.forEach(function (q, i) { q.index = i; });
+
+  /* ---------------------------------------------------------
+     Milestones - tiered counters that pay permanent bonuses.
+     They read all-time stats, so they survive every rebirth.
+     --------------------------------------------------------- */
+  D.MILESTONES = [
+    { id: 'dig',    name: 'Excavation',   icon: '\u26CF', unit: 'nodes broken',
+      bonus: 'power', per: 0.03, label: '+3% mining power',
+      stat: function (s) { return s.stats.nodes; },
+      tiers: [50, 250, 1000, 5000, 20000, 75000, 250000, 1e6] },
+    { id: 'trade',  name: 'Commerce',     icon: '\u{1F4B0}', unit: 'ore sold',
+      bonus: 'value', per: 0.03, label: '+3% sell value',
+      stat: function (s) { return s.stats.sold; },
+      tiers: [100, 500, 2500, 12000, 60000, 300000, 1.5e6, 8e6] },
+    { id: 'wealth', name: 'Fortune',      icon: '\u{1F48E}', unit: 'earned all time', money: true,
+      bonus: 'money', per: 0.02, label: '+2% money',
+      stat: function (s) { return s.stats.totalEarned; },
+      tiers: [1e4, 1e5, 1e6, 1e8, 1e10, 1e12, 1e15, 1e18] },
+    { id: 'grind',  name: 'Endurance',    icon: '\u{1F4AA}', unit: 'pickaxe swings',
+      bonus: 'swing', per: 0.03, label: '+3% swing speed',
+      stat: function (s) { return s.stats.swings; },
+      tiers: [200, 1000, 5000, 25000, 1e5, 5e5, 2e6, 1e7] },
+    { id: 'build',  name: 'Construction', icon: '\u{1F3D7}', unit: 'machines built',
+      bonus: 'buildMult', per: 0.04, label: '+4% building output',
+      stat: function (s) { return s.stats.built || 0; },
+      tiers: [5, 15, 40, 100, 250, 600, 1500, 4000] },
+    { id: 'rare',   name: 'Prospecting',  icon: '\u{1F340}', unit: 'rare ore mined',
+      bonus: 'luck', per: 0.04, label: '+4% rare ore chance',
+      stat: rareMined,
+      tiers: [10, 50, 250, 1200, 6000, 30000, 150000, 750000] },
+    { id: 'jobs',   name: 'Diligence',    icon: '\u{1F4CB}', unit: 'contracts filled',
+      bonus: 'contract', per: 0.05, label: '+5% contract pay',
+      stat: function (s) { return s.contractsDone || 0; },
+      tiers: [5, 20, 60, 150, 400, 1000, 2500, 6000] }
+  ];
+
+  /* how many tiers of a track are complete */
+  D.milestoneTier = function (track, state) {
+    var v = track.stat(state), n = 0;
+    for (var i = 0; i < track.tiers.length; i++) if (v >= track.tiers[i]) n++;
+    return n;
+  };
+
+  /* ---------------------------------------------------------
+     Rebirth milestones - permanent unlocks keyed to rebirth count
+     --------------------------------------------------------- */
+  D.REBIRTH_MILESTONES = [
+    { at: 1,   name: 'First Return',      desc: '+10% money from every source.',      money: 0.10 },
+    { at: 2,   name: 'Muscle Memory',     desc: '+15% mining power.',                 power: 0.15 },
+    { at: 3,   name: 'Seed Capital',      desc: 'Start every life with $25,000.',     startMoney: 25000 },
+    { at: 5,   name: 'Known Tunnels',     desc: 'Start with the Shallow Caves open.', layers: 2 },
+    { at: 8,   name: 'Standing Crew',     desc: '+30% output from every building.',   build: 0.30 },
+    { at: 12,  name: 'Wider Foundations', desc: 'The island starts 2 tiles wider.',   size: 2 },
+    { at: 18,  name: 'Deep Roots',        desc: 'Start with the Deep Caves open.',    layers: 3 },
+    { at: 25,  name: 'Core Resonance',    desc: '+50% prestige cores on rebirth.',    cores: 0.50 },
+    { at: 35,  name: 'Prefab Camp',       desc: 'Start with a warehouse, a hut and a generator already built.',
+      startBuildings: ['store', 'hut', 'gen'] },
+    { at: 50,  name: 'Crystal Charter',   desc: 'Start with the Crystal Depths open.', layers: 4 },
+    { at: 75,  name: 'Titan',             desc: '+150% mining power.',                power: 1.50 },
+    { at: 100, name: 'Eternal Engine',    desc: 'Double every prestige core you earn.', cores: 1.00 }
   ];
 
   /* ---------------------------------------------------------

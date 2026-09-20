@@ -11,7 +11,7 @@
      Fresh state
      --------------------------------------------------------- */
   function blankStats() {
-    return { nodes: 0, mined: {}, sold: 0, swings: 0, playtime: 0, bestMoney: 0, totalEarned: 0 };
+    return { nodes: 0, mined: {}, sold: 0, swings: 0, playtime: 0, bestMoney: 0, totalEarned: 0, built: 0 };
   }
 
   S.create = function (carry) {
@@ -38,6 +38,8 @@
       rebirths: carry.rebirths || 0,
       achievements: carry.achievements || {},
       stats: carry.stats || blankStats(),
+      quest: carry.quest || 0,
+      questLog: carry.questLog || [],
       contracts: [],
       contractsDone: carry.contractsDone || 0,
       autoMine: true,
@@ -46,6 +48,22 @@
       playerY: D.SPAWN.y + 0.5,
       tip: 0
     };
+
+    /* rebirth milestones seed the new life before anything else */
+    var rb = S.rebirthBonuses(st.rebirths);
+    st.money += rb.startMoney;
+    st.size = U.clamp(D.START_SIZE + rb.size, D.START_SIZE, D.MAX_SIZE);
+    st.layersUnlocked = U.clamp(rb.layers, 1, D.LAYERS.length);
+    st.deepest = st.layersUnlocked - 1;
+    if (rb.startBuildings.length) {
+      var spot = 0;
+      for (var bi = 0; bi < rb.startBuildings.length; bi++) {
+        var bx = D.CENTER - 2 + (spot % 3), by = D.CENTER - 2;
+        st.buildings.push({ id: rb.startBuildings[bi], x: bx, y: by, t: U.now() });
+        st.buildCount[rb.startBuildings[bi]] = (st.buildCount[rb.startBuildings[bi]] || 0) + 1;
+        spot++;
+      }
+    }
 
     /* Head Start perk: begin with gear + seed money */
     var head = st.perks.start || 0;
@@ -57,6 +75,33 @@
       st.level = 1 + head * 3;
     }
     return st;
+  };
+
+  /* ---------------------------------------------------------
+     Rebirth milestones - everything unlocked by rebirth count
+     --------------------------------------------------------- */
+  S.rebirthBonuses = function (rebirths) {
+    var out = { money: 0, power: 0, build: 0, cores: 0, startMoney: 0, layers: 1, size: 0, startBuildings: [] };
+    for (var i = 0; i < D.REBIRTH_MILESTONES.length; i++) {
+      var m = D.REBIRTH_MILESTONES[i];
+      if (rebirths < m.at) continue;
+      if (m.money) out.money += m.money;
+      if (m.power) out.power += m.power;
+      if (m.build) out.build += m.build;
+      if (m.cores) out.cores += m.cores;
+      if (m.startMoney) out.startMoney = Math.max(out.startMoney, m.startMoney);
+      if (m.layers) out.layers = Math.max(out.layers, m.layers);
+      if (m.size) out.size = Math.max(out.size, m.size);
+      if (m.startBuildings) out.startBuildings = m.startBuildings;
+    }
+    return out;
+  };
+
+  S.nextRebirthMilestone = function (rebirths) {
+    for (var i = 0; i < D.REBIRTH_MILESTONES.length; i++) {
+      if (rebirths < D.REBIRTH_MILESTONES[i].at) return D.REBIRTH_MILESTONES[i];
+    }
+    return null;
   };
 
   S.get = function () { return game; };
@@ -73,35 +118,65 @@
     return chainTiers[U.clamp(game.gear[slot], 0, chainTiers.length - 1)];
   };
 
+  /* total bonus from every completed milestone tier, by bonus key */
+  S.milestoneBonuses = function () {
+    var out = {};
+    for (var i = 0; i < D.MILESTONES.length; i++) {
+      var t = D.MILESTONES[i];
+      out[t.bonus] = (out[t.bonus] || 0) + D.milestoneTier(t, game) * t.per;
+    }
+    return out;
+  };
+
+  /* how much of a given effect every placed building adds up to */
+  function buildingSum(key) {
+    var total = 0;
+    for (var i = 0; i < game.buildings.length; i++) {
+      var def = D.BUILD_BY_ID[game.buildings[i].id];
+      if (def && def[key]) total += def[key];
+    }
+    return total;
+  }
+  S.buildingSum = buildingSum;
+
   S.derive = function () {
     var g = game;
+    var ms = S.milestoneBonuses();
+    var rb = S.rebirthBonuses(g.rebirths);
+
     var pickPow = S.gearTier('pick').stat;
     var levelBonus = 1 + (g.level - 1) * 0.02;
     var perkPow = 1 + perk('muscle') * 0.20;
     var corePow = 1 + g.cores * 0.01;
+    var crewPow = 1 + buildingSum('playerPower');          /* jackhammer crews */
 
     var d = {
-      power: pickPow * levelBonus * perkPow * corePow,
+      power: pickPow * levelBonus * perkPow * corePow * crewPow
+        * (1 + (ms.power || 0)) * (1 + rb.power),
       capacity: Math.floor(S.gearTier('bag').stat * (1 + perk('pockets') * 0.40)),
       speed: S.gearTier('boots').stat * (1 + perk('swift') * 0.08) * (1 + (g.level - 1) * 0.004),
-      swing: S.gearTier('gloves').stat * (1 + perk('hands') * 0.10),
-      luck: S.gearTier('lamp').stat + perk('lucky') * 0.06,
-      doubleChance: perk('magnet') * 0.08,
-      respawn: D.RESPAWN / (1 + perk('scan') * 0.12),
-      buildMult: 1 + perk('foreman') * 0.20,
+      swing: S.gearTier('gloves').stat * (1 + perk('hands') * 0.10) * (1 + (ms.swing || 0)),
+      luck: S.gearTier('lamp').stat + perk('lucky') * 0.06
+        + buildingSum('luck') + (ms.luck || 0),
+      doubleChance: U.clamp(perk('magnet') * 0.08 + buildingSum('doubleOre'), 0, 0.95),
+      respawn: Math.max(0.25, D.RESPAWN / (1 + perk('scan') * 0.12 + buildingSum('respawn'))),
+      buildMult: (1 + perk('foreman') * 0.20 + (ms.buildMult || 0)) * (1 + rb.build),
       offlineRate: U.clamp(0.25 + perk('offline') * 0.08, 0, 1),
-      light: S.gearTier('lamp').stat
+      light: S.gearTier('lamp').stat,
+      contractBonus: 1 + (ms.contract || 0)
     };
 
-    /* money multiplier: charm x perks x cores x vault buildings */
-    var vaults = S.countBuilding('vault');
-    var smelters = S.countBuilding('smelt');
+    /* money multiplier: charm x perks x cores x refining buildings x meta */
     d.valueMult = S.gearTier('charm').stat
       * (1 + perk('golden') * 0.25)
       * (1 + g.cores * 0.03)
-      * (1 + vaults * D.BUILD_BY_ID.vault.bonus)
-      * (1 + smelters * D.BUILD_BY_ID.smelt.bonus)
-      * (1 + g.rebirths * 0.05);
+      * (1 + S.countBuilding('vault') * D.BUILD_BY_ID.vault.bonus
+           + S.countBuilding('smelt') * D.BUILD_BY_ID.smelt.bonus
+           + S.countBuilding('refine') * D.BUILD_BY_ID.refine.bonus)
+      * (1 + g.rebirths * 0.05)
+      * (1 + (ms.value || 0))
+      * (1 + (ms.money || 0))
+      * (1 + rb.money);
 
     return d;
   };
@@ -285,7 +360,7 @@
   };
 
   S.contractPay = function (c) {
-    return c.need * S.oreValue(c.ore, game.deepest) * D.CONTRACT_MULT;
+    return c.need * S.oreValue(c.ore, game.deepest) * D.CONTRACT_MULT * S.derive().contractBonus;
   };
 
   S.contractReady = function (c) {
@@ -326,6 +401,37 @@
   };
 
   /* ---------------------------------------------------------
+     Quests - a single chain, advanced automatically
+     --------------------------------------------------------- */
+  S.activeQuest = function () {
+    return D.QUESTS[game.quest] || null;
+  };
+
+  S.questProgress = function (q) {
+    if (!q) return { now: 0, goal: 1, pct: 1 };
+    var now = 0;
+    try { now = q.prog(game) || 0; } catch (e) { now = 0; }
+    return { now: now, goal: q.goal, pct: U.clamp(now / q.goal, 0, 1) };
+  };
+
+  /* completes as many quests as the current state satisfies */
+  S.checkQuests = function () {
+    var done = [], guard = 0;
+    while (guard++ < 8) {
+      var q = S.activeQuest();
+      if (!q) break;
+      if (S.questProgress(q).now < q.goal) break;
+      if (q.money) S.earn(q.money);
+      if (q.cores) { game.cores += q.cores; game.coresTotal += q.cores; }
+      if (q.xp) S.addXp(q.xp);
+      game.questLog.push(q.index);
+      game.quest++;
+      done.push(q);
+    }
+    return done;
+  };
+
+  /* ---------------------------------------------------------
      Achievements - returns list of newly unlocked entries
      --------------------------------------------------------- */
   S.checkAchievements = function () {
@@ -351,7 +457,8 @@
   S.pendingCores = function () {
     var base = D.coresFor(game.lifeEarned);
     var altar = S.countBuilding('altar') * D.BUILD_BY_ID.altar.bonus;
-    return Math.floor(base * (1 + perk('focus') * 0.10 + altar));
+    var rb = S.rebirthBonuses(game.rebirths);
+    return Math.floor(base * (1 + perk('focus') * 0.10 + altar + rb.cores));
   };
 
   S.rebirth = function () {
@@ -364,7 +471,9 @@
       rebirths: game.rebirths + 1,
       achievements: game.achievements,
       stats: game.stats,
-      contractsDone: game.contractsDone
+      contractsDone: game.contractsDone,
+      quest: game.quest,
+      questLog: game.questLog
     };
     var fresh = S.create(carry);
     fresh.autoMine = game.autoMine;
@@ -408,6 +517,13 @@
       for (var slot in base.gear) if (!(slot in st.gear)) st.gear[slot] = 0;
       if (!st.stats) st.stats = blankStats();
       if (!st.stats.mined) st.stats.mined = {};
+      /* saves made before the Construction milestone existed: credit the
+         machines already standing rather than starting them at zero */
+      if (typeof st.stats.built !== 'number') st.stats.built = (st.buildings || []).length;
+      if (!st.store) st.store = {};
+      if (!st.keep) st.keep = {};
+      if (typeof st.quest !== 'number') st.quest = 0;
+      if (!Array.isArray(st.questLog)) st.questLog = [];
       st.size = U.clamp(st.size | 0, D.START_SIZE, D.MAX_SIZE);
       st.layersUnlocked = U.clamp(st.layersUnlocked | 0, 1, D.LAYERS.length);
       st.layer = U.clamp(st.layer | 0, 0, st.layersUnlocked - 1);

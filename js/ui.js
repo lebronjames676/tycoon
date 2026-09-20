@@ -121,6 +121,10 @@
       rebirth: S.pendingCores() > 0,
       contracts: S.ensureContracts().some(function (c) { return S.contractReady(c); }),
       storage: S.countBuilding('store') === 0 && g.money >= S.buildingCost('store'),
+      quests: (function () {
+        var q = S.activeQuest();
+        return !!q && S.questProgress(q).pct >= 0.999;
+      })(),
       build: g.money >= S.buildingCost('hut') && W.freeBuildTiles() > 0
     };
     var buttons = dom.menu.querySelectorAll('button');
@@ -195,6 +199,12 @@
         }).join(' ') +
         (opts.button.disabled ? ' disabled' : '') + '>' + opts.button.label + '</button>' : '') +
       '</div>';
+  }
+
+  function bar(pct, color) {
+    return '<div class="bagfill" style="position:relative;height:6px;margin:4px 0 2px">' +
+      '<i style="width:' + U.clamp(pct * 100, 0, 100) + '%' +
+      (color ? ';background:' + color : '') + '"></i></div>';
   }
 
   function oreCosts(ores) {
@@ -455,6 +465,24 @@
       '<button data-act="doRebirth"' + (pending > 0 ? '' : ' disabled') + '>' +
       (pending > 0 ? 'REBIRTH FOR ' + U.fmt(pending) + ' CORES' : 'NOT READY YET') + '</button></div>';
 
+    /* --- rebirth milestones --- */
+    var rmHtml = '';
+    D.REBIRTH_MILESTONES.forEach(function (m) {
+      var got = g.rebirths >= m.at;
+      rmHtml += '<div class="row" style="opacity:' + (got ? 1 : 0.55) + '">' +
+        '<span style="font-size:14px;color:' + (got ? 'var(--violet)' : 'var(--muted)') + '">' +
+        (got ? '\u2726' : '\u25CB') + '</span>' +
+        '<span class="grow">' + U.esc(m.name) + '<br><span class="sub">' + U.esc(m.desc) + '</span></span>' +
+        '<span class="num" style="color:' + (got ? 'var(--violet)' : 'var(--muted)') + '">' +
+        m.at + ' \u21BB</span></div>';
+    });
+    var nextRm = S.nextRebirthMilestone(g.rebirths);
+    html += '<div class="section"><h4>Rebirth milestones</h4>' +
+      '<div class="note">Unlocked purely by how many times you have rebirthed - no cores required. ' +
+      (nextRm ? 'Next at <b>' + nextRm.at + ' rebirths</b>: ' + U.esc(nextRm.desc)
+              : 'Every milestone is yours.') + '</div>' +
+      '<div class="rows">' + rmHtml + '</div></div>';
+
     html += '<div class="section"><h4>Prestige perks &middot; ' + U.fmt(g.cores) + ' cores available &middot; ' +
       g.rebirths + ' rebirths</h4><div class="grid">';
 
@@ -479,6 +507,64 @@
       });
     });
     return { title: 'Rebirth', html: html + '</div></div>' };
+  };
+
+  /* ---------------------------------------------------------
+     QUESTS
+     --------------------------------------------------------- */
+  function questReward(q) {
+    var bits = [];
+    if (q.money) bits.push(U.fmtMoney(q.money));
+    if (q.cores) bits.push(U.fmt(q.cores) + (q.cores === 1 ? ' core' : ' cores'));
+    if (q.xp) bits.push(U.fmt(q.xp) + ' xp');
+    return bits.join(' &middot; ') || 'bragging rights';
+  }
+
+  RENDER.quests = function () {
+    var g = S.get();
+    var active = S.activeQuest();
+    var html = '<div class="note">One long chain of jobs that carries across every rebirth. ' +
+      'Quests complete themselves the moment you meet them - no need to come back and claim.<br>' +
+      'Finished <b>' + g.quest + ' / ' + D.QUESTS.length + '</b></div>';
+
+    if (!active) {
+      html += '<div class="card wide center" style="padding:20px">' +
+        '<div class="big">ALL QUESTS DONE</div>' +
+        '<p>Every job on the board is finished. The sky is yours.</p></div>';
+    } else {
+      var pr = S.questProgress(active);
+      html += '<div class="card wide" style="padding:14px;border-color:var(--teal)">' +
+        '<span class="tag">QUEST ' + (active.index + 1) + '</span>' +
+        '<h3 style="font-size:15px">' + U.esc(active.name) + '</h3>' +
+        '<p style="font-size:12px">' + U.esc(active.desc) + '</p>' +
+        bar(pr.pct) +
+        '<div class="req"><b>' + U.fmt(pr.now) + ' / ' + U.fmt(pr.goal) + '</b></div>' +
+        '<div class="price">Reward: ' + questReward(active) + '</div></div>';
+
+      var upcoming = D.QUESTS.slice(active.index + 1, active.index + 4);
+      if (upcoming.length) {
+        html += '<div class="section" style="margin-top:14px"><h4>Coming up</h4><div class="rows">';
+        upcoming.forEach(function (q) {
+          html += '<div class="row" style="opacity:.6"><span style="font-size:13px">\u25CB</span>' +
+            '<span class="grow">' + U.esc(q.name) + '<br><span class="sub">' + U.esc(q.desc) + '</span></span>' +
+            '<span class="sub">' + questReward(q) + '</span></div>';
+        });
+        html += '</div></div>';
+      }
+    }
+
+    if (g.quest > 0) {
+      html += '<div class="section" style="margin-top:14px"><h4>Completed</h4><div class="rows">';
+      for (var i = g.quest - 1; i >= 0 && i >= g.quest - 12; i--) {
+        var q = D.QUESTS[i];
+        if (!q) continue;
+        html += '<div class="row" style="opacity:.75"><span style="font-size:13px;color:var(--teal)">\u2714</span>' +
+          '<span class="grow">' + U.esc(q.name) + '</span>' +
+          '<span class="sub">' + questReward(q) + '</span></div>';
+      }
+      html += '</div></div>';
+    }
+    return { title: 'Quest Log', html: html };
   };
 
   /* ---------------------------------------------------------
@@ -638,6 +724,29 @@
         '<span class="grow">' + o.name + '</span><span class="num">' + U.fmt(n) + '</span></div>';
     });
     if (mined) html += '<div class="section"><h4>Ore mined (all time)</h4><div class="rows">' + mined + '</div></div>';
+
+    /* --- milestone tracks --- */
+    var mHtml = '';
+    D.MILESTONES.forEach(function (track) {
+      var tier = D.milestoneTier(track, g);
+      var value = track.stat(g);
+      var next = track.tiers[tier];
+      var prev = tier > 0 ? track.tiers[tier - 1] : 0;
+      var pct = next === undefined ? 1 : U.clamp((value - prev) / (next - prev), 0, 1);
+      var fmt = track.money ? U.fmtMoney : U.fmt;
+      mHtml += '<div class="card">' +
+        '<span class="tag' + (tier ? '' : ' lock') + '">' + tier + ' / ' + track.tiers.length + '</span>' +
+        '<h3>' + track.icon + ' ' + track.name + '</h3>' +
+        '<p>' + track.label + ' per tier &middot; now <b style="color:var(--teal)">+' +
+        Math.round(tier * track.per * 100) + '%</b></p>' +
+        bar(pct, tier >= track.tiers.length ? 'var(--gold)' : null) +
+        '<div class="req">' + fmt(value) + ' ' + track.unit +
+        (next === undefined ? ' &middot; <b>maxed</b>' : ' &middot; next at <b>' + fmt(next) + '</b>') +
+        '</div></div>';
+    });
+    html += '<div class="section"><h4>Milestones</h4>' +
+      '<div class="note">Milestones read your all-time totals, so every tier you reach is kept ' +
+      'through every rebirth.</div><div class="grid">' + mHtml + '</div></div>';
 
     var done = 0;
     var ach = '';
