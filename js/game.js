@@ -115,7 +115,7 @@
      --------------------------------------------------------- */
   var PANEL_KEYS = {
     KeyI: 'inventory', KeyC: 'craft', KeyB: 'build', KeyX: 'island',
-    KeyV: 'depths', KeyR: 'rebirth', KeyT: 'stats', KeyJ: 'contracts', Slash: 'help'
+    KeyV: 'depths', KeyR: 'rebirth', KeyT: 'stats', KeyJ: 'contracts', KeyK: 'storage', Slash: 'help'
   };
 
   function onKeyDown(e) {
@@ -187,6 +187,12 @@
         Game.sfx('build');
         R.kick(2);
         if (S.get().money < S.buildingCost(buildChoice)) Game.clearBuildMode();
+        /* first warehouse: the player has to choose what it keeps, so show them */
+        if (b.first) {
+          Game.clearBuildMode();
+          UI.open('storage');
+          UI.toast('Pick which ore the warehouse should keep', 'epic');
+        }
       } else {
         UI.toast(b.msg, 'bad');
       }
@@ -360,6 +366,11 @@
     if (buildChoice) { UI.setHint('<b style="color:var(--ok)">Placing ' + D.BUILD_BY_ID[buildChoice].name + '</b> - tap a free tile. ESC to cancel.'); return; }
     if (where === 'market') { UI.setHint('<b style="color:var(--gold)">Market pad</b> - your ore is selling automatically.'); return; }
     if (where === 'shaft') { UI.setHint('<b>Mineshaft</b> - <span class="kbd">E</span> down, <span class="kbd">Q</span> up.'); return; }
+    if (g.layer === 0 && W.nearestWarehouse(PL.get().x, PL.get().y, 2.2)) {
+      UI.setHint('<b style="color:var(--teal)">Warehouse</b> - dropping off everything marked to keep. ' +
+        'Stored <b>' + U.fmt(S.stored()) + ' / ' + U.fmt(S.storageCap()) + '</b>');
+      return;
+    }
     UI.setHint('<b>Tip:</b> ' + D.TIPS[g.tip]);
   }
 

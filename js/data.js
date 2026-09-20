@@ -23,6 +23,7 @@
   D.SAVE_KEY = 'skyshard.save.v1';
   D.TICK_MS = 1000 / 60;
   D.OFFLINE_CAP_H = 8;
+  D.STORE_PER_BUILDING = 400;
 
   /* ---------------------------------------------------------
      Ores - w[] is the spawn weight per depth layer (0..5)
@@ -86,9 +87,9 @@
     ]),
 
     bag: chain('bag', 'capacity', '\u{1F392}', [
-      ['Cloth Satchel',       30,    0,       null, 0],
-      ['Leather Pack',        70,    400,     { stone: 20, coal: 15 }, 0],
-      ['Reinforced Pack',     160,   3000,    { iron: 30, copper: 25 }, 4],
+      ['Cloth Satchel',       45,    0,       null, 0],
+      ['Leather Pack',        95,    400,     { stone: 20, coal: 15 }, 0],
+      ['Reinforced Pack',     200,   3000,    { iron: 30, copper: 25 }, 4],
       ["Miner's Rucksack",    380,   26000,   { silver: 40, iron: 35 }, 9],
       ['Crystal Cache',       900,   240000,  { ruby: 60, gold: 45 }, 17],
       ['Void Satchel',        2200,  2.4e6,   { emerald: 80, diamond: 40 }, 26],
@@ -146,6 +147,8 @@
   D.BUILDINGS = [
     { id: 'hut',    name: "Miner's Hut", icon: '\u{1F3E0}', cost: 600,    growth: 1.62, power: 0,
       desc: 'Hires a miner that digs 0.35 ore/sec from your deepest unlocked layer.', rate: 0.35 },
+    { id: 'store',  name: 'Warehouse',   icon: '\u{1F4E6}',  cost: 350,    growth: 1.55, power: 0,
+      desc: 'Holds 400 ore outside your bag. Walk near it to drop off anything you have marked to keep.', capacity: 400 },
     { id: 'gen',    name: 'Generator',   icon: '⚡',     cost: 4500,   growth: 1.70, power: 30,
       desc: 'Burns coal dust to supply 30 power for your drills.' },
     { id: 'drill',  name: 'Auto Drill',  icon: '\u{1F6E2}',  cost: 9000,   growth: 1.74, power: -8,
@@ -186,7 +189,7 @@
     { id: 'muscle',  name: 'Strong Arms',   icon: '\u{1F4AA}', cost: 3,  growth: 1.55, max: 40,
       desc: '+20% mining power.', per: '+20% power' },
     { id: 'pockets', name: 'Deep Pockets',  icon: '\u{1F45C}', cost: 2,  growth: 1.48, max: 30,
-      desc: '+40% carry capacity.', per: '+40% capacity' },
+      desc: '+40% carry capacity and +40% warehouse space.', per: '+40% capacity' },
     { id: 'swift',   name: 'Swift Feet',    icon: '\u{1F4A8}', cost: 4,  growth: 1.60, max: 12,
       desc: '+8% movement speed.', per: '+8% speed' },
     { id: 'hands',   name: 'Fast Hands',    icon: '\u{1F44F}', cost: 4,  growth: 1.55, max: 25,
@@ -240,6 +243,7 @@
     { id: 'lvl50',    name: 'Master Miner',     desc: 'Reach mining level 50.',                cores: 8, money: 5e7,   test: function (s) { return s.level >= 50; } },
     { id: 'reb1',     name: 'Born Again',       desc: 'Rebirth for the first time.',           cores: 1, money: 0,     test: function (s) { return s.rebirths >= 1; } },
     { id: 'reb10',    name: 'Eternal Return',   desc: 'Rebirth 10 times.',                     cores: 15, money: 0,    test: function (s) { return s.rebirths >= 10; } },
+    { id: 'ware',     name: 'Logistics',        desc: 'Build your first warehouse.',           cores: 0, money: 1200,  test: function (s) { return (s.buildings || []).some(function (b) { return b.id === 'store'; }); } },
     { id: 'jobs',     name: 'Guild Favourite',  desc: 'Complete 25 guild contracts.',          cores: 3, money: 2e5,  test: function (s) { return (s.contractsDone || 0) >= 25; } },
     { id: 'star',     name: 'Stardust',         desc: 'Mine a Star Core.',                     cores: 5, money: 1e6,   test: function (s) { return (s.stats.mined.starcore || 0) >= 1; } }
   ];
@@ -290,7 +294,8 @@
     'Craft a bigger bag before a deeper layer - you will fill it fast.',
     'The lantern raises the chance that rare ore spawns anywhere you dig.',
     'Press E on the mineshaft to ride down, Q to come back up.',
-    'Guild contracts pay roughly triple the market rate - check the Jobs board.'
+    'Guild contracts pay roughly triple the market rate - check the Jobs board.',
+    'A warehouse keeps crafting ore safe from auto-selling. Walk past it to drop off.'
   ];
 
   root.D = D;

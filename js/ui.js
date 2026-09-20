@@ -120,6 +120,7 @@
       depths: W.nextLayerCost() !== null && g.money >= W.nextLayerCost(),
       rebirth: S.pendingCores() > 0,
       contracts: S.ensureContracts().some(function (c) { return S.contractReady(c); }),
+      storage: S.countBuilding('store') === 0 && g.money >= S.buildingCost('store'),
       build: g.money >= S.buildingCost('hut') && W.freeBuildTiles() > 0
     };
     var buttons = dom.menu.querySelectorAll('button');
@@ -197,9 +198,9 @@
   }
 
   function oreCosts(ores) {
-    var g = S.get(), out = [];
+    var out = [];
     for (var id in ores) {
-      var need = ores[id], have = g.inv[id] || 0;
+      var need = ores[id], have = S.oreHave(id);
       out.push(D.ORE_BY_ID[id].name + ' <b class="' + (have < need ? 'miss' : '') + '">' +
                U.fmt(have) + '/' + U.fmt(need) + '</b>');
     }
@@ -217,10 +218,13 @@
     ids.forEach(function (id) {
       var ore = D.ORE_BY_ID[id], n = g.inv[id], v = S.oreValue(id, g.deepest) * n;
       total += v;
+      var prot = S.isProtected(id);
+      if (prot) total -= v;
       rows += '<div class="row"><i class="dot" style="background:' + ore.color + '"></i>' +
-        '<span class="grow">' + ore.name + '</span>' +
+        '<span class="grow">' + ore.name +
+        (prot ? ' <span class="sub" style="color:var(--teal)">&#9679; kept</span>' : '') + '</span>' +
         '<span class="sub">x' + U.fmt(n) + '</span>' +
-        '<span class="num">' + U.fmtMoney(v) + '</span></div>';
+        '<span class="num">' + (prot ? '&mdash;' : U.fmtMoney(v)) + '</span></div>';
     });
 
     var onPad = PL.standingOn() === 'market';
@@ -232,13 +236,16 @@
 
     var html = '<div class="note">' + note + '<br>Capacity <b>' + U.fmt(carried) + ' / ' +
       U.fmt(d.capacity) + '</b> &middot; Sale multiplier <b>x' + d.valueMult.toFixed(2) +
-      '</b> &middot; Depth bonus <b>x' + D.LAYERS[g.deepest].valMult.toFixed(2) + '</b></div>';
+      '</b> &middot; Depth bonus <b>x' + D.LAYERS[g.deepest].valMult.toFixed(2) + '</b>' +
+      (S.storageCap() > 0 ? '<br>Warehouse <b>' + U.fmt(S.stored()) + ' / ' +
+        U.fmt(S.storageCap()) + '</b> - ore marked <b>kept</b> is never sold automatically.' : '') +
+      '</div>';
 
     html += rows ? '<div class="rows">' + rows + '</div>' : '<div class="empty">Your bag is empty. Go break some rocks.</div>';
 
     if (total > 0) {
       html += '<div class="section" style="margin-top:12px"><div class="row">' +
-        '<span class="grow">Total value' + (ratio < 1 ? ' (after fee)' : '') + '</span>' +
+        '<span class="grow">Sellable value' + (ratio < 1 ? ' (after fee)' : '') + '</span>' +
         '<span class="num">' + U.fmtMoney(total * ratio) + '</span></div></div>' +
         '<button class="btn" data-act="sellAll" style="width:100%;padding:11px">SELL EVERYTHING</button>';
     }
@@ -327,7 +334,8 @@
       var owned = S.countBuilding(b.id);
       var cost = S.buildingCost(b.id);
       var afford = g.money >= cost && free > 0;
-      var effect = b.rate ? (b.id === 'convey' ? b.rate + ' ore/s shipped' : b.rate + ' ore/s mined')
+      var effect = b.capacity ? '+' + U.fmt(b.capacity) + ' ore of storage'
+        : b.rate ? (b.id === 'convey' ? b.rate + ' ore/s shipped' : b.rate + ' ore/s mined')
         : (b.power > 0 ? '+' + b.power + ' power' : '+' + Math.round(b.bonus * 100) + '% bonus');
       html += card({
         icon: b.icon, name: b.name,
@@ -474,6 +482,84 @@
   };
 
   /* ---------------------------------------------------------
+     STORAGE
+     --------------------------------------------------------- */
+  RENDER.storage = function () {
+    var g = S.get();
+    var cap = S.storageCap(), used = S.stored();
+    var sheds = S.countBuilding('store');
+
+    if (!sheds) {
+      return {
+        title: 'Warehouse',
+        html: '<div class="note">You have not built a warehouse yet.<br><br>' +
+          'A warehouse holds <b>' + D.STORE_PER_BUILDING + ' ore</b> outside your bag. ' +
+          'Ore you mark to <b>keep</b> is dropped off automatically whenever you walk past one, ' +
+          'is never sold by the market pad or your conveyors, and still counts towards crafting ' +
+          'recipes and guild contracts.</div>' +
+          '<div class="grid">' + card({
+            icon: D.BUILD_BY_ID.store.icon, name: 'Warehouse', wide: true,
+            desc: U.esc(D.BUILD_BY_ID.store.desc),
+            price: U.fmtMoney(S.buildingCost('store')),
+            priceBad: g.money < S.buildingCost('store'),
+            button: {
+              act: 'pickBuild', data: { id: 'store' },
+              label: g.money >= S.buildingCost('store') ? 'BUILD ONE' : 'NOT ENOUGH MONEY',
+              disabled: g.money < S.buildingCost('store')
+            }
+          }) + '</div>'
+      };
+    }
+
+    var pctFull = cap ? U.clamp(used / cap * 100, 0, 100) : 0;
+    var html = '<div class="note">' + sheds + ' warehouse' + (sheds > 1 ? 's' : '') +
+      ' holding <b>' + U.fmt(used) + ' / ' + U.fmt(cap) + '</b> ore. ' +
+      'Walk within a couple of tiles of one to drop off everything you have marked to keep.' +
+      (S.storageRoom() <= 0 ? '<br><b style="color:var(--rose)">Storage is full</b> - kept ore is ' +
+        'being sold again until you build more space.' : '') +
+      '<div class="bagfill" style="position:relative;margin-top:7px;height:5px">' +
+      '<i style="width:' + pctFull + '%"></i></div></div>';
+
+    var keptCount = D.ORES.filter(function (o) { return g.keep[o.id]; }).length;
+    html += '<div class="section"><h4>What to keep</h4>' +
+      '<div class="note"' + (keptCount ? '' : ' style="border-left-color:var(--gold)"') + '>' +
+      (keptCount ? '' : '<b>Nothing is being kept yet.</b> Tick the ore you are saving for a recipe.<br>') +
+      'Ore set to <b>KEEPING</b> goes into the warehouse instead of being sold automatically, and ' +
+      'still counts towards recipes and contracts. Ore set to <b>SELLING</b> behaves as before: the ' +
+      'market pad, your conveyors and machine overflow all cash it in.</div><div class="rows">';
+
+    D.ORES.forEach(function (o) {
+      var kept = !!g.keep[o.id];
+      var inBag = g.inv[o.id] || 0, inShed = g.store[o.id] || 0;
+      var worth = inShed * S.oreValue(o.id, g.deepest);
+      html += '<div class="row">' +
+        '<i class="dot" style="background:' + o.color + '"></i>' +
+        '<span class="grow">' + o.name +
+        '<br><span class="sub">bag ' + U.fmt(inBag) + ' &middot; stored ' + U.fmt(inShed) + '</span></span>' +
+        (inShed > 0 ? '<button class="btn" data-act="sellStored" data-id="' + o.id + '" ' +
+          'style="padding:5px 9px;font-size:10px">SELL ' + U.fmtMoney(worth) + '</button>' : '') +
+        '<button class="btn" data-act="toggleKeep" data-id="' + o.id + '" style="padding:5px 9px;font-size:10px;' +
+        (kept ? 'background:var(--teal-dk);border-color:var(--teal);color:#fff' :
+                'background:#232e38;border-color:var(--line);color:var(--muted)') + '">' +
+        (kept ? 'KEEPING' : 'SELLING') + '</button></div>';
+    });
+    html += '</div></div>';
+
+    html += '<div class="grid">' +
+      '<button class="btn" data-act="keepAll">KEEP EVERYTHING</button>' +
+      '<button class="btn" data-act="keepNone">SELL EVERYTHING</button>' +
+      (used > 0 ? '<button class="btn wide" data-act="sellAllStored" style="border-color:var(--gold);color:var(--gold)">' +
+        'EMPTY THE WAREHOUSE FOR ' + U.fmtMoney(D.ORES.reduce(function (a, o) {
+          return a + (g.store[o.id] || 0) * S.oreValue(o.id, g.deepest);
+        }, 0)) + '</button>' : '') +
+      '<button class="btn" data-act="pickBuild" data-id="store">BUILD ANOTHER (' +
+        U.fmtMoney(S.buildingCost('store')) + ')</button>' +
+      '</div>';
+
+    return { title: 'Warehouse', html: html };
+  };
+
+  /* ---------------------------------------------------------
      CONTRACTS
      --------------------------------------------------------- */
   RENDER.contracts = function () {
@@ -579,7 +665,7 @@
       '<div class="row"><span class="grow">Swing the pickaxe</span><span><span class="kbd">SPACE</span> (hold) or click a rock</span></div>' +
       '<div class="row"><span class="grow">Ride the shaft down / up</span><span><span class="kbd">E</span> / <span class="kbd">Q</span></span></div>' +
       '<div class="row"><span class="grow">Zoom</span><span><span class="kbd">-</span> <span class="kbd">+</span> or scroll wheel</span></div>' +
-      '<div class="row"><span class="grow">Panels</span><span><span class="kbd">I</span> <span class="kbd">C</span> <span class="kbd">B</span> <span class="kbd">X</span> <span class="kbd">V</span> <span class="kbd">R</span> <span class="kbd">T</span></span></div>' +
+      '<div class="row"><span class="grow">Panels</span><span><span class="kbd">I</span> <span class="kbd">C</span> <span class="kbd">B</span> <span class="kbd">K</span> <span class="kbd">X</span> <span class="kbd">V</span> <span class="kbd">J</span> <span class="kbd">R</span> <span class="kbd">T</span></span></div>' +
       '<div class="row"><span class="grow">Close a panel</span><span><span class="kbd">ESC</span></span></div>' +
       '</div></div>';
 
@@ -587,6 +673,7 @@
       '<div class="note"><b>1. Mine.</b> Stand next to a rock and swing. Ore goes into your bag.</div>' +
       '<div class="note"><b>2. Sell.</b> Walk onto the golden market pad to cash out at full price.</div>' +
       '<div class="note"><b>3. Craft.</b> Spend ore and money at the workbench for stronger gear. A bigger bag and faster gloves matter as much as raw power.</div>' +
+      '<div class="note"><b>3b. Store.</b> A warehouse holds ore outside your bag. Tick the ore types you want to <b>keep</b> and they will be dropped off whenever you walk past a warehouse, never auto-sold, and still spendable on recipes and contracts.</div>' +
       '<div class="note"><b>4. Build.</b> Huts, drills and rigs mine for you day and night. Generators keep them powered, conveyors sell the ore, smelters and vaults raise the price.</div>' +
       '<div class="note"><b>5. Expand.</b> A wider island carries more ore veins and more machines.</div>' +
       '<div class="note"><b>6. Dig deeper.</b> Each layer multiplies both rock toughness and ore value. Your buildings always work the deepest layer you own.</div>' +
@@ -692,6 +779,38 @@
 
     rerollContract: function (data) {
       if (S.rerollContract(data.id)) UI.toast('New job posted');
+    },
+
+    toggleKeep: function (data) {
+      var on = S.toggleKeep(data.id);
+      UI.toast(D.ORE_BY_ID[data.id].name + (on ? ' will be kept' : ' will be sold'));
+    },
+
+    keepAll: function () {
+      D.ORES.forEach(function (o) { S.get().keep[o.id] = 1; });
+      UI.toast('Keeping every ore type');
+    },
+
+    keepNone: function () {
+      S.get().keep = {};
+      UI.toast('Everything will be sold automatically');
+    },
+
+    sellStored: function (data) {
+      var r = E.sellStored(data.id);
+      if (r.units > 0) {
+        UI.toast('Sold ' + U.fmt(r.units) + ' ' + D.ORE_BY_ID[data.id].name +
+                 ' for ' + U.fmtMoney(r.money), 'gold');
+        Game.sfx('sell');
+      }
+    },
+
+    sellAllStored: function () {
+      var r = E.sellAllStored();
+      if (r.units > 0) {
+        UI.toast('Emptied the warehouse: ' + U.fmtMoney(r.money), 'gold');
+        Game.sfx('sell');
+      }
     },
 
     saveNow: function () { S.save(); UI.toast('Saved'); },

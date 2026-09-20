@@ -216,10 +216,13 @@
     if (!W.tileFreeForBuild(x, y)) return { ok: false, msg: 'That tile is occupied' };
     var cost = S.buildingCost(id);
     if (g.money < cost) return { ok: false, msg: 'Not enough money' };
+    var first = id === 'store' && S.countBuilding('store') === 0;
     S.spend(cost);
     g.buildings.push({ id: id, x: x, y: y, t: U.now() });
     g.buildCount[id] = (g.buildCount[id] || 0) + 1;
-    return { ok: true, cost: cost };
+    /* nothing is kept until the player says so - a warehouse must never
+       silently switch off the income they already rely on */
+    return { ok: true, cost: cost, first: first };
   };
 
   W.demolish = function (x, y) {
@@ -235,6 +238,19 @@
       }
     }
     return { ok: false };
+  };
+
+  W.nearestWarehouse = function (x, y, range) {
+    var g = S.get();
+    if (g.layer !== 0) return null;
+    var best = null, bestD = range;
+    for (var i = 0; i < g.buildings.length; i++) {
+      var b = g.buildings[i];
+      if (b.id !== 'store') continue;
+      var d = U.dist(x, y, b.x + 0.5, b.y + 0.5);
+      if (d < bestD) { bestD = d; best = b; }
+    }
+    return best;
   };
 
   W.freeBuildTiles = function () {

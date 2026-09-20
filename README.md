@@ -34,7 +34,7 @@ The Field Manual panel can export the save as a string and paste one back in.
 | Ride the mineshaft down / up | `E` / `Q` |
 | Place or demolish a building | click / right-click in build mode |
 | Zoom | `+` `-` or the scroll wheel |
-| Panels | `I` bag, `C` craft, `B` build, `X` island, `V` depths, `J` jobs, `R` rebirth, `T` records, `?` help |
+| Panels | `I` bag, `C` craft, `B` build, `K` warehouse, `X` island, `V` depths, `J` jobs, `R` rebirth, `T` records, `?` help |
 | Mute | `M` |
 | Close a panel | `ESC` |
 
@@ -48,20 +48,24 @@ automatically.
 2. **Sell.** Walk onto the golden market pad to cash out at full price. Selling
    from the field costs a 25% courier fee until you own a conveyor.
 3. **Craft.** Six independent upgrade chains — pickaxe, bag, boots, gloves, charm
-   and lantern — each cost ore from your bag plus cash, and each gates behind a
-   mining level.
-4. **Build.** Eight machines work around the clock, including while the game is
+   and lantern — each cost ore plus cash, and each gates behind a mining level.
+4. **Store.** A warehouse holds ore outside your bag. Tick the ore types you want
+   to *keep*: those are dropped off whenever you walk past a warehouse, are never
+   sold by the market pad, your conveyors or machine overflow, and still count
+   towards recipes and contracts. Everything you leave on *sell* behaves as
+   before, so building one never quietly switches off your income.
+5. **Build.** Nine machines work around the clock, including while the game is
    closed. Miner's huts and drills dig, generators power the drills, conveyors
    ship ore to market, smelters and vaults raise the price, and the void altar
    bends prestige maths in your favour.
-5. **Expand.** A wider island carries more ore veins on every layer and more room
+6. **Expand.** A wider island carries more ore veins on every layer and more room
    for machines, up to 20×20.
-6. **Dig deeper.** Six layers, from the Surface down to The Void. Each multiplies
+7. **Dig deeper.** Six layers, from the Surface down to The Void. Each multiplies
    both rock toughness and ore value, and your buildings always work the deepest
    layer you have unlocked.
-7. **Take contracts.** The sky guild posts three delivery jobs at a time that pay
+8. **Take contracts.** The sky guild posts three delivery jobs at a time that pay
    roughly triple the market rate plus a lump of experience.
-8. **Rebirth.** Once a life has earned enough, trade the island, the money, the
+9. **Rebirth.** Once a life has earned enough, trade the island, the money, the
    gear and the machines for Prestige Cores. Cores are permanent (+3% money and
    +1% mining power each) and buy twelve stacking perks.
 
@@ -71,6 +75,7 @@ automatically.
 - Node health, cracking, damage numbers and respawn timers
 - Mining levels and experience, feeding power and movement speed
 - Carry capacity with overflow auto-selling so idle progress never fully stalls
+- Warehouses with per-ore keep/sell selection, feeding crafting and contracts
 - A power grid: drills run at reduced efficiency when generators cannot keep up
 - Offline production with a configurable rate and an eight-hour cap
 - Twenty achievements paying out cash and cores

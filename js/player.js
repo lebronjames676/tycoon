@@ -9,7 +9,7 @@
   var me = {
     x: 0, y: 0, face: 1, walking: false,
     swing: 0, swingPhase: -1, target: null,
-    sellTimer: 0, bumpMsg: 0
+    sellTimer: 0, dropTimer: 0, bumpMsg: 0
   };
 
   PL.get = function () { return me; };
@@ -144,10 +144,10 @@
     if (me.sellTimer > 0) return;
     me.sellTimer = 0.12;
 
-    /* sell the most valuable stack first, a chunk at a time */
+    /* sell the most valuable unprotected stack first, a chunk at a time */
     var bestId = null, bestVal = 0;
     for (var id in g.inv) {
-      if (g.inv[id] <= 0) continue;
+      if (g.inv[id] <= 0 || S.isProtected(id)) continue;
       var v = S.oreValue(id, g.deepest);
       if (v > bestVal) { bestVal = v; bestId = id; }
     }
@@ -164,6 +164,38 @@
 
     R.floatText(D.SELL.x + 0.5, D.SELL.y + 0.5, '+' + U.fmtMoney(gained), '#f5c04e', 1);
     Game.sfx('sell');
+  }
+
+  /* ---------------------------------------------------------
+     Dropping ore off at a warehouse
+     --------------------------------------------------------- */
+  function dropTick(dt) {
+    var g = S.get();
+    if (g.layer !== 0) { me.dropTimer = 0; return; }
+    var wh = W.nearestWarehouse(me.x, me.y, 2.2);
+    if (!wh) { me.dropTimer = 0; return; }
+
+    me.dropTimer -= dt;
+    if (me.dropTimer > 0) return;
+    me.dropTimer = 0.1;
+
+    if (S.storageRoom() <= 0) return;
+
+    /* deposit whichever kept ore we are carrying most of */
+    var bestId = null, bestN = 0;
+    for (var id in g.inv) {
+      if (!g.keep[id] || g.inv[id] <= 0) continue;
+      if (g.inv[id] > bestN) { bestN = g.inv[id]; bestId = id; }
+    }
+    if (!bestId) return;
+
+    var chunk = Math.max(1, Math.ceil(bestN / 5));
+    var moved = S.depositOre(bestId, Math.min(bestN, chunk));
+    if (moved <= 0) return;
+    g.inv[bestId] -= moved;
+    if (g.inv[bestId] <= 0) delete g.inv[bestId];
+
+    R.floatText(wh.x + 0.5, wh.y + 0.5, '+' + U.fmt(moved), D.ORE_BY_ID[bestId].gem, 1);
   }
 
   /* ---------------------------------------------------------
@@ -194,6 +226,7 @@
 
     mineTick(dt, input.mine);
     sellTick(dt);
+    dropTick(dt);
 
     if (me.bumpMsg > 0) me.bumpMsg -= dt;
 

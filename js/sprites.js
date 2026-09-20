@@ -277,6 +277,26 @@
     ctx.fillStyle = '#f5c04e'; ctx.fillRect(x + 11, y + 11, 2, 2);   /* window*/
   };
 
+  BUILD.store = function (ctx, x, y, t) {
+    /* a stack of crates under a low shelter */
+    function crate(cx, cy, w, h, tone) {
+      ctx.fillStyle = U.shade('#a9763f', tone - 26); ctx.fillRect(cx, cy, w, h);
+      ctx.fillStyle = U.shade('#a9763f', tone);      ctx.fillRect(cx, cy, w, h - 1);
+      ctx.fillStyle = U.shade('#a9763f', tone + 22); ctx.fillRect(cx, cy, w, 1);
+      ctx.fillStyle = U.shade('#a9763f', tone - 44);
+      ctx.fillRect(cx, cy + Math.floor(h / 2), w, 1);
+      ctx.fillRect(cx + Math.floor(w / 2), cy, 1, h);
+    }
+    ctx.fillStyle = '#4a545e'; ctx.fillRect(x + 1, y + 15, 14, 2);   /* pallet  */
+    crate(x + 1, y + 9, 7, 6, 0);
+    crate(x + 8, y + 9, 7, 6, -12);
+    crate(x + 4, y + 3, 7, 6, 10);
+    ctx.fillStyle = '#6b7680';                                       /* canopy  */
+    ctx.fillRect(x, y + 1, 16, 2);
+    ctx.fillStyle = '#8894a0'; ctx.fillRect(x, y + 1, 16, 1);
+    ctx.fillStyle = '#4a545e'; ctx.fillRect(x, y + 3, 1, 13); ctx.fillRect(x + 15, y + 3, 1, 13);
+  };
+
   BUILD.gen = function (ctx, x, y, t) {
     ctx.fillStyle = '#4a545e'; ctx.fillRect(x + 2, y + 6, 12, 11);
     ctx.fillStyle = '#5e6a76'; ctx.fillRect(x + 2, y + 6, 12, 2);

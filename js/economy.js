@@ -54,8 +54,9 @@
   /* ---------------------------------------------------------
      Selling helpers
      --------------------------------------------------------- */
-  /* sell up to `units` from the bag, most valuable first.  ratio<1 = discount */
-  E.sellUnits = function (units, ratio) {
+  /* sell up to `units` from the bag, most valuable first.  ratio<1 = discount.
+     Ore marked to keep is skipped unless `force` is set. */
+  E.sellUnits = function (units, ratio, force) {
     var g = S.get(), earned = 0, sold = 0;
     ratio = ratio === undefined ? 1 : ratio;
     var guard = 0;
@@ -63,6 +64,7 @@
       var bestId = null, bestVal = -1;
       for (var id in g.inv) {
         if (g.inv[id] <= 0) continue;
+        if (!force && S.isProtected(id)) continue;
         var v = S.oreValue(id, g.deepest);
         if (v > bestVal) { bestVal = v; bestId = id; }
       }
@@ -78,8 +80,31 @@
     return { money: earned, units: sold };
   };
 
-  E.sellAll = function (ratio) {
-    return E.sellUnits(S.carried(), ratio);
+  E.sellAll = function (ratio, force) {
+    return E.sellUnits(S.carried(), ratio, force);
+  };
+
+  /* sell straight out of the warehouse - you own the logistics, so full price */
+  E.sellStored = function (oreId, amount) {
+    var g = S.get();
+    var have = g.store[oreId] || 0;
+    var take = Math.min(have, amount === undefined ? have : amount);
+    if (take <= 0) return { money: 0, units: 0 };
+    g.store[oreId] -= take;
+    if (g.store[oreId] <= 0) delete g.store[oreId];
+    var money = S.oreValue(oreId, g.deepest) * take;
+    S.earn(money);
+    g.stats.sold += take;
+    return { money: money, units: take };
+  };
+
+  E.sellAllStored = function () {
+    var g = S.get(), money = 0, units = 0;
+    for (var id in g.store) {
+      var r = E.sellStored(id, g.store[id]);
+      money += r.money; units += r.units;
+    }
+    return { money: money, units: units };
   };
 
   /* ---------------------------------------------------------
@@ -107,8 +132,13 @@
           var ore = W.rollOre(g.deepest);
           var stored = S.addOre(ore.id, amount);
           var overflow = amount - stored;
+          /* bag full: kept ore goes to the warehouse before anything is dumped */
+          if (overflow > 0 && g.keep[ore.id]) {
+            overflow -= S.depositOre(ore.id, overflow);
+          }
           if (overflow > 0) {
-            /* no room: the crew sells it on the cheap so progress never stalls */
+            /* nowhere left to put it: the crew sells it on the cheap so
+               progress never stalls */
             var v = S.oreValue(ore.id, g.deepest) * overflow * 0.65;
             S.earn(v);
             g.stats.sold += overflow;

@@ -24,7 +24,9 @@
       layer: 0,
       layersUnlocked: 1,
       deepest: 0,
-      inv: {},                 /* oreId -> count carried */
+      inv: {},                 /* oreId -> count carried in the bag  */
+      store: {},               /* oreId -> count in the warehouses    */
+      keep: {},                /* oreId -> 1 = protect + warehouse it */
       gear: { pick: 0, bag: 0, boots: 0, gloves: 0, charm: 0, lamp: 0 },
       buildings: [],           /* {id, x, y}                                   */
       buildCount: {},          /* buildingId -> how many bought (price ladder) */
@@ -102,6 +104,64 @@
       * (1 + g.rebirths * 0.05);
 
     return d;
+  };
+
+  /* ---------------------------------------------------------
+     Warehouse storage
+     --------------------------------------------------------- */
+  S.storageCap = function () {
+    var n = S.countBuilding('store');
+    if (!n) return 0;
+    return Math.floor(n * D.STORE_PER_BUILDING * (1 + perk('pockets') * 0.40));
+  };
+
+  S.stored = function () {
+    var n = 0;
+    for (var k in game.store) n += game.store[k];
+    return n;
+  };
+
+  S.storageRoom = function () { return Math.max(0, S.storageCap() - S.stored()); };
+
+  /* an ore is protected from every automatic sale while it has somewhere to go */
+  S.isProtected = function (oreId) {
+    return !!game.keep[oreId] && S.storageCap() > 0 && S.storageRoom() > 0;
+  };
+
+  S.toggleKeep = function (oreId) {
+    if (game.keep[oreId]) delete game.keep[oreId];
+    else game.keep[oreId] = 1;
+    return !!game.keep[oreId];
+  };
+
+  /* move ore into the warehouse, returns how much actually fit */
+  S.depositOre = function (oreId, amount) {
+    var room = S.storageRoom();
+    var give = Math.min(amount, Math.max(0, room));
+    if (give <= 0) return 0;
+    game.store[oreId] = (game.store[oreId] || 0) + give;
+    return give;
+  };
+
+  /* total of one ore across the bag and the warehouses */
+  S.oreHave = function (oreId) {
+    return (game.inv[oreId] || 0) + (game.store[oreId] || 0);
+  };
+
+  /* spend ore, bag first then warehouse */
+  S.takeOre = function (oreId, amount) {
+    if (S.oreHave(oreId) < amount) return false;
+    var fromBag = Math.min(amount, game.inv[oreId] || 0);
+    if (fromBag > 0) {
+      game.inv[oreId] -= fromBag;
+      if (game.inv[oreId] <= 0) delete game.inv[oreId];
+    }
+    var rest = amount - fromBag;
+    if (rest > 0) {
+      game.store[oreId] -= rest;
+      if (game.store[oreId] <= 0) delete game.store[oreId];
+    }
+    return true;
   };
 
   S.countBuilding = function (id) {
@@ -189,7 +249,7 @@
     if (game.level < next.lvl) return { ok: false, reason: 'level', next: next };
     if (game.money < next.money) return { ok: false, reason: 'money', next: next };
     for (var id in next.ores) {
-      if ((game.inv[id] || 0) < next.ores[id]) return { ok: false, reason: 'ore', next: next };
+      if (S.oreHave(id) < next.ores[id]) return { ok: false, reason: 'ore', next: next };
     }
     return { ok: true, next: next };
   };
@@ -198,7 +258,7 @@
     var c = S.canCraft(slot);
     if (!c.ok) return null;
     game.money -= c.next.money;
-    for (var id in c.next.ores) game.inv[id] -= c.next.ores[id];
+    for (var id in c.next.ores) S.takeOre(id, c.next.ores[id]);
     game.gear[slot]++;
     return c.next;
   };
@@ -229,7 +289,7 @@
   };
 
   S.contractReady = function (c) {
-    return (game.inv[c.ore] || 0) >= c.need;
+    return S.oreHave(c.ore) >= c.need;
   };
 
   S.claimContract = function (id) {
@@ -238,8 +298,7 @@
       if (list[i].id !== id) continue;
       var c = list[i];
       if (!S.contractReady(c)) return null;
-      game.inv[c.ore] -= c.need;
-      if (game.inv[c.ore] <= 0) delete game.inv[c.ore];
+      S.takeOre(c.ore, c.need);
       var pay = S.contractPay(c);
       S.earn(pay);
       var xp = D.contractReward(c).xp;
