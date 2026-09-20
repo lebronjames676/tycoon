@@ -112,6 +112,7 @@
       var node = {
         x: x, y: y, ore: ore.id, hp: maxHp, maxHp: maxHp,
         grade: D.rollGrade(d.luck, d.gradeBonus),
+        mut: D.rollMutation(d.luck),
         seed: U.randInt(1, 99999), born: U.now(), pop: silent ? 0 : 1
       };
       W.nodes[layer][U.key(x, y)] = node;

@@ -11,7 +11,7 @@
      Fresh state
      --------------------------------------------------------- */
   function blankStats() {
-    return { nodes: 0, mined: {}, sold: 0, swings: 0, playtime: 0, bestMoney: 0, totalEarned: 0, built: 0, visited: { sky: 1 }, found: {}, grades: {} };
+    return { nodes: 0, mined: {}, sold: 0, swings: 0, playtime: 0, bestMoney: 0, totalEarned: 0, built: 0, visited: { sky: 1 }, found: {}, grades: {}, muts: {} };
   }
 
   S.create = function (carry) {
@@ -274,8 +274,9 @@
   S.storageRoom = function () { return Math.max(0, S.storageCap() - S.stored()); };
 
   /* an ore is protected from every automatic sale while it has somewhere to go */
-  S.isProtected = function (oreId) {
-    return !!game.keep[oreId] && S.storageCap() > 0 && S.storageRoom() > 0;
+  /* the keep flag is set per ore, and covers all of its mutations */
+  S.isProtected = function (key) {
+    return !!game.keep[D.keyOre(key)] && S.storageCap() > 0 && S.storageRoom() > 0;
   };
 
   S.toggleKeep = function (oreId) {
@@ -293,25 +294,42 @@
     return give;
   };
 
-  /* total of one ore across the bag and the warehouses */
-  S.oreHave = function (oreId) {
-    return (game.inv[oreId] || 0) + (game.store[oreId] || 0);
+  /* every stack of one ore, mutations included, newest-cheapest first */
+  S.oreKeysOf = function (bag, oreId) {
+    var out = [];
+    for (var k in bag) {
+      if (bag[k] > 0 && D.keyOre(k) === oreId) out.push(k);
+    }
+    out.sort(function (a, c) { return D.keyMult(a) - D.keyMult(c); });
+    return out;
   };
 
-  /* spend ore, bag first then warehouse */
+  /* total of one ore across the bag and the warehouses, mutations included */
+  S.oreHave = function (oreId) {
+    var n = 0, k;
+    for (k in game.inv) if (D.keyOre(k) === oreId) n += game.inv[k];
+    for (k in game.store) if (D.keyOre(k) === oreId) n += game.store[k];
+    return n;
+  };
+
+  /* Spend ore for a recipe or a contract: bag before warehouse, and the
+     least valuable mutation first, so crafting never eats your Pure seam
+     while there is slag sitting next to it. */
   S.takeOre = function (oreId, amount) {
     if (S.oreHave(oreId) < amount) return false;
-    var fromBag = Math.min(amount, game.inv[oreId] || 0);
-    if (fromBag > 0) {
-      game.inv[oreId] -= fromBag;
-      if (game.inv[oreId] <= 0) delete game.inv[oreId];
+    var left = amount;
+    var pools = [game.inv, game.store];
+    for (var p = 0; p < pools.length && left > 0; p++) {
+      var pool = pools[p];
+      var keys = S.oreKeysOf(pool, oreId);
+      for (var i = 0; i < keys.length && left > 0; i++) {
+        var take = Math.min(left, pool[keys[i]]);
+        pool[keys[i]] -= take;
+        if (pool[keys[i]] <= 0) delete pool[keys[i]];
+        left -= take;
+      }
     }
-    var rest = amount - fromBag;
-    if (rest > 0) {
-      game.store[oreId] -= rest;
-      if (game.store[oreId] <= 0) delete game.store[oreId];
-    }
-    return true;
+    return left <= 0;
   };
 
   S.countBuilding = function (id) {
@@ -343,21 +361,26 @@
     return n;
   };
 
-  S.addOre = function (oreId, amount) {
+  /* `mutId` is optional; with it the ore goes into its own stack, which is
+     what lets Pure Gold sell for six times what plain gold does. */
+  S.addOre = function (oreId, amount, mutId) {
     var cap = S.derive().capacity;
     var free = cap - S.carried();
     var give = Math.min(amount, Math.max(0, free));
     if (give <= 0) return 0;
-    game.inv[oreId] = (game.inv[oreId] || 0) + give;
+    var key = D.oreKey(oreId, mutId);
+    game.inv[key] = (game.inv[key] || 0) + give;
+    /* the lifetime "ore mined" table stays keyed by the plain ore */
     game.stats.mined[oreId] = (game.stats.mined[oreId] || 0) + give;
     return give;
   };
 
-  S.oreValue = function (oreId, layer) {
-    var ore = D.ORE_BY_ID[oreId];
+  /* accepts a plain ore id or a mutated inventory key */
+  S.oreValue = function (key, layer) {
+    var ore = D.ORE_BY_ID[D.keyOre(key)];
     if (!ore) return 0;
     var lm = S.layer(layer === undefined ? game.deepest : layer).valMult;
-    return ore.value * lm * S.derive().valueMult;
+    return ore.value * D.keyMult(key) * lm * S.derive().valueMult;
   };
 
   S.earn = function (amount) {
@@ -609,6 +632,7 @@
       if (!st.stats.visited) st.stats.visited = { sky: 1 };
       if (!st.stats.found) st.stats.found = {};
       if (!st.stats.grades) st.stats.grades = {};
+      if (!st.stats.muts) st.stats.muts = {};
       if (typeof st.dim !== 'number') st.dim = 0;
       st.dim = U.clamp(st.dim, 0, D.DIMENSIONS.length - 1);
       /* never strand a save in a dimension its rebirth count no longer allows */

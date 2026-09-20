@@ -130,22 +130,29 @@
     var grade = D.GRADES[node.grade || 0] || D.GRADES[0];
     var amount = (1 + (Math.random() < d.doubleChance ? 1 : 0)) * grade.yield;
 
-    var got = S.addOre(ore.id, amount);
+    var mut = node.mut ? D.MUT_BY_ID[node.mut] : null;
+    var got = S.addOre(ore.id, amount, node.mut);
     g.stats.nodes++;
-    S.addXp(D.xpFromOre(ore) * (1 + layer * 0.15) * (node.grade ? 2 : 1));
+    S.addXp(D.xpFromOre(ore) * (1 + layer * 0.15) * (node.grade ? 2 : 1) * (mut && mut.xp ? mut.xp : 1));
     if (node.grade) {
       g.stats.grades[grade.id] = (g.stats.grades[grade.id] || 0) + 1;
+    }
+    if (mut) {
+      g.stats.muts[mut.id] = (g.stats.muts[mut.id] || 0) + 1;
     }
 
     var cx = node.x + 0.5, cy = node.y + 0.5;
     R.burst(cx, cy, ore.gem, node.grade ? 18 : 10);
     R.burst(cx, cy, U.shade(ore.color, -30), 6);
     if (node.grade) R.burst(cx, cy, grade.glow, 14);
-    R.kick(node.grade ? 3.6 : 2.2);
+    if (mut) R.burst(cx, cy, mut.tint, mut.bad ? 8 : 20);
+    R.kick(node.grade || (mut && !mut.bad) ? 3.6 : 2.2);
 
     if (got > 0) {
-      R.floatText(cx, cy, '+' + got, node.grade ? grade.glow : ore.gem, 2);
-      if (node.grade) R.floatText(cx, cy, grade.name, grade.color, 1);
+      R.floatText(cx, cy, '+' + got,
+                  mut && !mut.bad ? mut.tint : (node.grade ? grade.glow : ore.gem), 2);
+      var tag = (node.grade ? grade.name + ' ' : '') + (mut ? mut.name.toUpperCase() : '');
+      if (tag) R.floatText(cx, cy, tag, mut ? mut.color : grade.color, 1);
     } else {
       R.floatText(cx, cy, 'FULL', '#e05b6a', 1);
       if (me.bumpMsg <= 0) { UI.toast('Bag full - visit the market pad', 'bad'); me.bumpMsg = 6; }
@@ -153,7 +160,7 @@
 
     W.removeNode(layer, node);
     me.target = null;
-    Game.onNodeBroken(ore, layer, node.grade || 0);
+    Game.onNodeBroken(ore, layer, node.grade || 0, mut);
   }
 
   function mineTick(dt, wantMine) {
@@ -265,7 +272,7 @@
     /* deposit whichever kept ore we are carrying most of */
     var bestId = null, bestN = 0;
     for (var id in g.inv) {
-      if (!g.keep[id] || g.inv[id] <= 0) continue;
+      if (!g.keep[D.keyOre(id)] || g.inv[id] <= 0) continue;
       if (g.inv[id] > bestN) { bestN = g.inv[id]; bestId = id; }
     }
     if (!bestId) return;
@@ -276,7 +283,8 @@
     g.inv[bestId] -= moved;
     if (g.inv[bestId] <= 0) delete g.inv[bestId];
 
-    R.floatText(wh.x + 0.5, wh.y + 0.5, '+' + U.fmt(moved), D.ORE_BY_ID[bestId].gem, 1);
+    R.floatText(wh.x + 0.5, wh.y + 0.5, '+' + U.fmt(moved),
+                D.ORE_BY_ID[D.keyOre(bestId)].gem, 1);
   }
 
   /* ---------------------------------------------------------

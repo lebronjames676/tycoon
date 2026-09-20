@@ -228,15 +228,20 @@
   RENDER.inventory = function () {
     var g = S.get(), d = S.derive(), rows = '', total = 0, carried = S.carried();
     var ids = Object.keys(g.inv).filter(function (id) { return g.inv[id] > 0; });
-    ids.sort(function (a, b) { return D.ORE_BY_ID[b].value - D.ORE_BY_ID[a].value; });
+    ids.sort(function (a, b) { return S.oreValue(b, g.deepest) - S.oreValue(a, g.deepest); });
 
     ids.forEach(function (id) {
-      var ore = D.ORE_BY_ID[id], n = g.inv[id], v = S.oreValue(id, g.deepest) * n;
+      var ore = D.ORE_BY_ID[D.keyOre(id)];
+      if (!ore) return;
+      var mut = D.keyMut(id);
+      var n = g.inv[id], v = S.oreValue(id, g.deepest) * n;
       total += v;
       var prot = S.isProtected(id);
       if (prot) total -= v;
-      rows += '<div class="row"><img class="pix sm" src="' + P.oreIcon(id, 22) + '" alt="">' +
-        '<span class="grow">' + ore.name +
+      rows += '<div class="row"><img class="pix sm" src="' + P.oreIcon(D.keyOre(id), 22) + '" alt="">' +
+        '<span class="grow">' +
+        (mut ? '<b style="color:' + mut.color + '">' + mut.name + '</b> ' : '') + ore.name +
+        (mut ? ' <span class="sub">' + D.multText(mut.mult) + ' value</span>' : '') +
         (prot ? ' <span class="sub" style="color:var(--teal)">&#9679; kept</span>' : '') + '</span>' +
         '<span class="sub">x' + U.fmt(n) + '</span>' +
         '<span class="num">' + (prot ? '&mdash;' : U.fmtMoney(v)) + '</span></div>';
@@ -690,8 +695,13 @@
 
     D.ORES.forEach(function (o) {
       var kept = !!g.keep[o.id];
-      var inBag = g.inv[o.id] || 0, inShed = g.store[o.id] || 0;
-      var worth = inShed * S.oreValue(o.id, g.deepest);
+      var inBag = 0, inShed = 0, worth = 0, kk;
+      for (kk in g.inv) if (D.keyOre(kk) === o.id) inBag += g.inv[kk];
+      for (kk in g.store) {
+        if (D.keyOre(kk) !== o.id) continue;
+        inShed += g.store[kk];
+        worth += g.store[kk] * S.oreValue(kk, g.deepest);
+      }
       html += '<div class="row">' +
         '<img class="pix sm" src="' + P.oreIcon(o.id, 22) + '" alt="">' +
         '<span class="grow">' + o.name +
@@ -709,8 +719,8 @@
       '<button class="btn" data-act="keepAll">KEEP EVERYTHING</button>' +
       '<button class="btn" data-act="keepNone">SELL EVERYTHING</button>' +
       (used > 0 ? '<button class="btn wide" data-act="sellAllStored" style="border-color:var(--gold);color:var(--gold)">' +
-        'EMPTY THE WAREHOUSE FOR ' + U.fmtMoney(D.ORES.reduce(function (a, o) {
-          return a + (g.store[o.id] || 0) * S.oreValue(o.id, g.deepest);
+        'EMPTY THE WAREHOUSE FOR ' + U.fmtMoney(Object.keys(g.store).reduce(function (a, k) {
+          return a + g.store[k] * S.oreValue(k, g.deepest);
         }, 0)) + '</button>' : '') +
       '<button class="btn" data-act="pickBuild" data-id="store">BUILD ANOTHER (' +
         U.fmtMoney(S.buildingCost('store')) + ')</button>' +
@@ -798,6 +808,25 @@
         '<span class="grow">' + o.name + '</span><span class="num">' + U.fmt(n) + '</span></div>';
     });
     if (mined) html += '<div class="section"><h4>Ore mined (all time)</h4><div class="rows">' + mined + '</div></div>';
+
+    /* --- mutations --- */
+    var mutMap = g.stats.muts || {};
+    var mHtml = '', mTotal = 0;
+    D.MUTATIONS.forEach(function (mu) {
+      var n = mutMap[mu.id] || 0;
+      mTotal += n;
+      mHtml += '<div class="row" style="opacity:' + (n ? 1 : 0.5) + '">' +
+        '<i class="dot" style="background:' + mu.color + '"></i>' +
+        '<span class="grow" style="color:' + (n ? mu.color : 'inherit') + '">' + mu.name +
+        '<br><span class="sub">' + U.esc(mu.desc) + '</span></span>' +
+        '<span class="num" style="color:' + (mu.bad ? 'var(--rose)' : 'var(--gold)') + '">' +
+        D.multText(mu.mult) + '</span>' +
+        '<span class="sub" style="min-width:42px;text-align:right">' + (n ? U.fmt(n) : '&mdash;') + '</span></div>';
+    });
+    html += '<div class="section"><h4>Mutations &middot; ' + U.fmt(mTotal) + ' found</h4>' +
+      '<div class="note">A second, far rarer roll than the grade. A mutation changes what the ore ' +
+      'is <b>worth</b> rather than how much of it you get, and the two stack. Luck pushes the roll ' +
+      'towards Pure and Shiny and away from slag.</div><div class="rows">' + mHtml + '</div></div>';
 
     /* --- graded seams --- */
     var gradeMap = g.stats.grades || {};
@@ -1029,10 +1058,15 @@
     },
 
     sellStored: function (data) {
-      var r = E.sellStored(data.id);
-      if (r.units > 0) {
-        UI.toast('Sold ' + U.fmt(r.units) + ' ' + D.ORE_BY_ID[data.id].name +
-                 ' for ' + U.fmtMoney(r.money), 'gold');
+      var g2 = S.get(), money = 0, units = 0;
+      var keys = Object.keys(g2.store).filter(function (k) { return D.keyOre(k) === data.id; });
+      keys.forEach(function (k) {
+        var r = E.sellStored(k);
+        money += r.money; units += r.units;
+      });
+      if (units > 0) {
+        UI.toast('Sold ' + U.fmt(units) + ' ' + D.ORE_BY_ID[data.id].name +
+                 ' for ' + U.fmtMoney(money), 'gold');
         Game.sfx('sell');
       }
     },

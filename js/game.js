@@ -92,7 +92,7 @@
     var shed = { money: 0, units: 0 };
     if (onPad) {
       for (var id in g.store) {
-        if (g.keep[id]) continue;
+        if (g.keep[D.keyOre(id)]) continue;
         var r = E.sellStored(id, g.store[id]);
         shed.money += r.money; shed.units += r.units;
       }
@@ -114,8 +114,13 @@
   /* ---------------------------------------------------------
      Events fired from other modules
      --------------------------------------------------------- */
-  Game.onNodeBroken = function (ore, layer, grade) {
-    Game.sfx(grade >= 2 || ore.rank >= 6 ? 'rare' : 'breakN');
+  Game.onNodeBroken = function (ore, layer, grade, mut) {
+    Game.sfx(grade >= 2 || (mut && !mut.bad) || ore.rank >= 6 ? 'rare' : 'breakN');
+    if (mut && (mut.mult >= 6 || mut.mult <= 0.3)) {
+      UI.toast(mut.name + ' ' + ore.name + '! Worth ' + D.multText(mut.mult) + ' - ' + mut.desc,
+               mut.bad ? 'bad' : (mut.mult >= 15 ? 'epic' : 'gold'));
+      return;
+    }
     if (grade >= 2) {
       var g2 = D.GRADES[grade];
       UI.toast(g2.name + ' ' + ore.name + '! ' + g2.yield + 'x the ore.',
@@ -476,7 +481,7 @@
     var onPad = PL.standingOn() === 'market';
     if (onPad) {
       for (var sid in g.store) {
-        if (g.keep[sid]) continue;
+        if (g.keep[D.keyOre(sid)]) continue;
         value += S.oreValue(sid, g.deepest) * g.store[sid];
       }
     } else if (!(S.countBuilding('convey') || S.countBuilding('maglev'))) {

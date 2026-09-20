@@ -220,6 +220,42 @@
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(x + 2 + Math.floor(sp * (ROCK_W - 5)), y + 2 + Math.floor(sp * 4), 1, 1);
     }
+
+    /* mutations sit on top of everything: a wash of colour over the rock,
+       plus a tell that says which one it is */
+    var mut = node.mut ? D.MUT_BY_ID[node.mut] : null;
+    if (mut) {
+      var mrng = U.mulberry(node.seed + 313);
+      ctx.globalAlpha = mut.bad ? 0.42 : 0.3;
+      ctx.fillStyle = mut.tint;
+      for (var mr = 1; mr < ROCK.length - 1; mr++) {
+        ctx.fillRect(x + ROCK[mr][0], y + mr, ROCK[mr][1], 1);
+      }
+      ctx.globalAlpha = 1;
+
+      if (mut.bad) {
+        /* pits and fractures */
+        ctx.fillStyle = U.shade(mut.color, -55);
+        for (var b = 0; b < 6; b++) {
+          var br = 2 + Math.floor(mrng() * (ROCK.length - 4));
+          ctx.fillRect(x + ROCK[br][0] + 1 + Math.floor(mrng() * (ROCK[br][1] - 2)), y + br, 2, 1);
+        }
+      } else {
+        /* a halo and a travelling glint */
+        var mp = 0.4 + 0.45 * Math.sin((t || 0) * 4 + node.seed);
+        ctx.globalAlpha = mp;
+        ctx.fillStyle = mut.tint;
+        for (var hr = 0; hr < ROCK.length; hr++) {
+          ctx.fillRect(x + ROCK[hr][0] - 1, y + hr, 1, 1);
+          ctx.fillRect(x + ROCK[hr][0] + ROCK[hr][1], y + hr, 1, 1);
+        }
+        ctx.globalAlpha = 1;
+        var gl = ((t || 0) * 1.6 + node.seed) % 1;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x + 3 + Math.floor(gl * (ROCK_W - 7)), y + 3, 2, 1);
+        ctx.fillRect(x + 4 + Math.floor(gl * (ROCK_W - 7)), y + 2, 1, 1);
+      }
+    }
   };
 
   P.ROCK_H = ROCK_H;

@@ -177,6 +177,78 @@
   };
 
   /* ---------------------------------------------------------
+     Mutations - a second, rarer roll that changes what the ore
+     is WORTH, where a grade changes how MUCH of it you get.
+     The two stack: Flawless Pure Gold is a very good day.
+     --------------------------------------------------------- */
+  D.MUTATIONS = [
+    /* --- the rock came out wrong --- */
+    { id: 'cracked',     name: 'Cracked',     mult: 0.15, chance: 0.0040, bad: true,
+      color: '#8a7f72', tint: '#6b6055', desc: 'Shot through with fractures. Barely holds together.' },
+    { id: 'contaminated',name: 'Contaminated',mult: 0.30, chance: 0.0120, bad: true,
+      color: '#9db84a', tint: '#7f9438', desc: 'Something leached into the seam. Buyers can tell.' },
+    { id: 'impure',      name: 'Impure',      mult: 0.55, chance: 0.0300, bad: true,
+      color: '#9a9a9e', tint: '#74747a', desc: 'Half rock, half slag.' },
+
+    /* --- the rock came out right --- */
+    { id: 'shiny',       name: 'Shiny',       mult: 2.5,  chance: 0.0200,
+      color: '#ffffff', tint: '#ffffff', desc: 'Catches the light from across the island.' },
+    { id: 'pure',        name: 'Pure',        mult: 6,    chance: 0.0070,
+      color: '#8fd8ff', tint: '#d8f2ff', desc: 'Not one flaw in it. Assayers pay for this.' },
+    { id: 'glowing',     name: 'Glowing',     mult: 15,   chance: 0.0015, light: true,
+      color: '#8ee6c8', tint: '#b6ffe4', desc: 'Lights the rock around it, faintly.' },
+    { id: 'radioactive', name: 'Radioactive', mult: 40,   chance: 0.00030, xp: 6,
+      color: '#9dff4a', tint: '#c8ff8a', desc: 'Warm to hold. Best not to hold it.' },
+    { id: 'ancient',     name: 'Ancient',     mult: 120,  chance: 0.00004,
+      color: '#f5c04e', tint: '#ffe8a8', desc: 'Older than the island. Older than the sky.' }
+  ];
+  D.MUT_BY_ID = {};
+  D.MUTATIONS.forEach(function (m, i) { m.index = i; D.MUT_BY_ID[m.id] = m; });
+  D.GOOD_MUTS = D.MUTATIONS.filter(function (m) { return !m.bad; }).reverse();  /* rarest first */
+  D.BAD_MUTS = D.MUTATIONS.filter(function (m) { return m.bad; });              /* rarest first */
+
+  /* Luck widens the good bands and narrows the bad ones, so a well equipped
+     miner slowly stops pulling up slag and starts pulling up treasure. */
+  D.rollMutation = function (luck) {
+    var i, m;
+    for (i = 0; i < D.GOOD_MUTS.length; i++) {
+      m = D.GOOD_MUTS[i];
+      if (Math.random() < Math.min(0.25, m.chance * (1 + (luck || 0)))) return m.id;
+    }
+    for (i = 0; i < D.BAD_MUTS.length; i++) {
+      m = D.BAD_MUTS[i];
+      if (Math.random() < m.chance / (1 + (luck || 0) * 0.6)) return m.id;
+    }
+    return null;
+  };
+
+  /* ---- inventory keys carry the mutation: "gold" or "gold@pure" ---- */
+  D.oreKey = function (oreId, mutId) { return mutId ? oreId + '@' + mutId : oreId; };
+  D.keyOre = function (key) {
+    var i = String(key).indexOf('@');
+    return i < 0 ? key : key.slice(0, i);
+  };
+  D.keyMut = function (key) {
+    var i = String(key).indexOf('@');
+    return i < 0 ? null : (D.MUT_BY_ID[String(key).slice(i + 1)] || null);
+  };
+  D.keyMult = function (key) {
+    var m = D.keyMut(key);
+    return m ? m.mult : 1;
+  };
+  /* U.fmt rounds 0.15 to 0.2, which misreads a penalty - show fractions exactly */
+  D.multText = function (m) {
+    return 'x' + (m < 1 ? String(Math.round(m * 100) / 100) : U.fmt(m));
+  };
+
+  D.keyName = function (key) {
+    var ore = D.ORE_BY_ID[D.keyOre(key)];
+    var m = D.keyMut(key);
+    if (!ore) return String(key);
+    return m ? m.name + ' ' + ore.name : ore.name;
+  };
+
+  /* ---------------------------------------------------------
      Dimensions - the shard drifts to richer regions of space.
      Each one swaps the ore table, the palette and how it plays.
      --------------------------------------------------------- */
@@ -611,6 +683,13 @@
     { id: 'reb100',   name: 'Eternal Engine',   desc: 'Reach 100 rebirths.',                   cores: 250, money: 0,   test: function (s) { return s.rebirths >= 100; } },
     { id: 'power',    name: 'Grid Operator',    desc: 'Supply 1,000 power.',                   cores: 5, money: 5e6,   test: function (s) { var p = 0; s.buildings.forEach(function (b) { var d = D.BUILD_BY_ID[b.id]; if (d && d.power > 0) p += d.power; }); return p >= 1000; } },
     { id: 'hoard',    name: 'Full Sheds',       desc: 'Fill 10,000 ore of warehouse space.',   cores: 6, money: 1e7,   test: function (s) { var n = 0; for (var k in (s.store || {})) n += s.store[k]; return n >= 10000; } },
+    { id: 'mut1',     name: 'Shiny Thing',      desc: 'Pull up a Shiny seam.',                 cores: 1, money: 2e4,  test: function (s) { return ((s.stats.muts || {}).shiny || 0) >= 1; } },
+    { id: 'mut2',     name: 'Purity',           desc: 'Pull up a Pure seam.',                  cores: 3, money: 3e5,  test: function (s) { return ((s.stats.muts || {}).pure || 0) >= 1; } },
+    { id: 'mut3',     name: 'It Glows',         desc: 'Pull up a Glowing seam.',               cores: 8, money: 5e6,  test: function (s) { return ((s.stats.muts || {}).glowing || 0) >= 1; } },
+    { id: 'mut4',     name: 'Half-Life',        desc: 'Pull up a Radioactive seam.',           cores: 25, money: 1e8, test: function (s) { return ((s.stats.muts || {}).radioactive || 0) >= 1; } },
+    { id: 'mut5',     name: 'Older Than Sky',   desc: 'Pull up an Ancient seam. Almost nobody does.', cores: 100, money: 1e10, test: function (s) { return ((s.stats.muts || {}).ancient || 0) >= 1; } },
+    { id: 'mut6',     name: 'Slag Merchant',    desc: 'Dig out 50 spoiled seams.',             cores: 2, money: 5e4,  test: function (s) { var m = s.stats.muts || {}; return (m.impure || 0) + (m.contaminated || 0) + (m.cracked || 0) >= 50; } },
+    { id: 'mut7',     name: 'Full Catalogue',   desc: 'Find every mutation there is.',         cores: 120, money: 5e10, test: function (s) { var m = s.stats.muts || {}; return D.MUTATIONS.every(function (mm) { return (m[mm.id] || 0) >= 1; }); } },
     { id: 'grade1',   name: 'Rich Seam',        desc: 'Break a Rich node.',                    cores: 0, money: 5000,  test: function (s) { return ((s.stats.grades || {}).rich || 0) >= 1; } },
     { id: 'grade2',   name: 'Pristine Cut',     desc: 'Break a Pristine node.',                cores: 2, money: 1e5,   test: function (s) { return ((s.stats.grades || {}).pristine || 0) >= 1; } },
     { id: 'grade3',   name: 'Flawless',         desc: 'Break a Flawless node - they are one in a thousand.', cores: 10, money: 1e7, test: function (s) { return ((s.stats.grades || {}).flawless || 0) >= 1; } },
@@ -662,6 +741,9 @@
       goal: 1,     prog: function (s) { return s.buildings.length; },    money: 1200 },
     { name: 'Somewhere to Put It', desc: 'Build a warehouse so ore stops overflowing.',
       goal: 1,     prog: function (s) { return ownsOf(s, 'store'); },    money: 2000 },
+    { name: 'Something Shiny',   desc: 'Pull up a mutated seam. Most are junk; a few are not.',
+      goal: 1,     prog: function (s) { var m = s.stats.muts || {}, n = 0; for (var k in m) n += m[k]; return n; },
+      money: 15000, xp: 600 },
     { name: 'Struck Rich',       desc: 'Break a Rich seam. Lucky gear and lanterns make them commoner.',
       goal: 1,     prog: function (s) { return (s.stats.grades || {}).rich || 0; }, money: 9000, xp: 400 },
     { name: 'Buried Treasure',   desc: 'Find and dig out a fossil. Watch for mounds in the ground.',
@@ -754,6 +836,10 @@
       bonus: 'luck', per: 0.04, label: '+4% rare ore chance',
       stat: function (s) { var gr = s.stats.grades || {}, n = 0; for (var k in gr) n += gr[k]; return n; },
       tiers: [1, 10, 50, 250, 1200, 5000, 20000, 80000] },
+    { id: 'muts',   name: 'Mineralogist', icon: '\u269B', unit: 'mutated seams found',
+      bonus: 'value', per: 0.04, label: '+4% sell value',
+      stat: function (s) { var m = s.stats.muts || {}, n = 0; for (var k in m) n += m[k]; return n; },
+      tiers: [1, 8, 40, 180, 800, 3500, 15000, 60000] },
     { id: 'finds',  name: 'Excavator',    icon: '\u{1F9B4}', unit: 'structures uncovered',
       bonus: 'luck', per: 0.05, label: '+5% rare ore chance',
       stat: function (s) { var f = s.stats.found || {}, n = 0; for (var k in f) n += f[k]; return n; },
@@ -887,7 +973,9 @@
     'Rebirth milestones unlock whole new dimensions - the Moon is waiting at 5.',
     'Mounds of loose ground hide fossils, geodes and old mineshafts. Walk near one to uncover it.',
     'Glowing seams are graded: Rich pays 4x the ore, Pristine 12x and Flawless a full 40x.',
-    'Luck from lanterns, scanners and the Assay Office makes graded seams far commoner.'
+    'Luck from lanterns, scanners and the Assay Office makes graded seams far commoner.',
+    'Mutated ore sells for a multiple of its worth - or a fraction, if it came up Contaminated.',
+    'Luck also pushes mutations towards Pure and Shiny and away from slag.'
   ];
 
   root.D = D;

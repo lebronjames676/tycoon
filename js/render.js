@@ -428,11 +428,12 @@
         var pop = n.pop > 0 ? Math.round(n.pop * 5) : 0;
         /* a graded seam gets a ring on the ground and, for the rarer two,
            its name overhead - the halo alone is lost against bright rock */
-        if (n.grade) {
-          var gd = D.GRADES[n.grade];
+        var nmut = n.mut ? D.MUT_BY_ID[n.mut] : null;
+        if (n.grade || nmut) {
+          var gd = D.GRADES[n.grade || 0];
           var gp = 0.5 + 0.5 * Math.sin(t * 3 + n.seed);
           ctx.globalAlpha = 0.3 + gp * 0.45;
-          ctx.strokeStyle = gd.glow;
+          ctx.strokeStyle = nmut ? nmut.color : gd.glow;
           ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.ellipse(sx, sy + TH / 2, 10 + gp * 4, 5 + gp * 2, 0, 0, 6.2832);
@@ -452,11 +453,15 @@
         } else {
           P.rock(ctx, sx, sy + 2 + pop, ore, n, shake, t);
           P.hpBar(ctx, sx, sy + 2, n);
-          if (n.grade >= 2) {
-            var gd2 = D.GRADES[n.grade];
+          var showMut = nmut && (nmut.mult >= 2.5 || nmut.mult <= 0.3);
+          if (n.grade >= 2 || showMut) {
+            var gd2 = D.GRADES[n.grade || 0];
             var bob2 = Math.round(Math.sin(t * 3 + n.seed) * 2);
-            P.text(ctx, gd2.name, sx, sy - P.ROCK_H - 12 + bob2,
-                   { align: 'center', scale: 1, color: gd2.color, plate: true });
+            var label = ((n.grade >= 2 ? gd2.name + ' ' : '') +
+                         (nmut ? nmut.name.toUpperCase() : '')).trim();
+            P.text(ctx, label, sx, sy - P.ROCK_H - 12 + bob2,
+                   { align: 'center', scale: 1,
+                     color: nmut ? nmut.color : gd2.color, plate: true });
           }
         }
       } else if (it.kind === 'build') {

@@ -134,16 +134,18 @@
           var amount = (i === batches - 1) ? n - per * (batches - 1) : per;
           if (amount <= 0) continue;
           var ore = W.rollOre(g.deepest);
-          var stored = S.addOre(ore.id, amount);
+          var mutId = D.rollMutation(d.luck);
+          var key = D.oreKey(ore.id, mutId);
+          var stored = S.addOre(ore.id, amount, mutId);
           var overflow = amount - stored;
           /* bag full: kept ore goes to the warehouse before anything is dumped */
           if (overflow > 0 && g.keep[ore.id]) {
-            overflow -= S.depositOre(ore.id, overflow);
+            overflow -= S.depositOre(key, overflow);
           }
           if (overflow > 0) {
             /* nowhere left to put it: the crew sells it on the cheap so
                progress never stalls */
-            var v = S.oreValue(ore.id, g.deepest) * overflow * 0.65;
+            var v = S.oreValue(key, g.deepest) * overflow * 0.65;
             S.earn(v);
             g.stats.sold += overflow;
           }
@@ -166,9 +168,10 @@
             var bn = broken[bi];
             var bore = D.ORE_BY_ID[bn.ore];
             var bgrade = D.GRADES[bn.grade || 0] || D.GRADES[0];
-            S.addOre(bore.id, bgrade.yield);
+            S.addOre(bore.id, bgrade.yield, bn.mut);
             g.stats.nodes++;
             if (bn.grade) g.stats.grades[bgrade.id] = (g.stats.grades[bgrade.id] || 0) + 1;
+            if (bn.mut) g.stats.muts[bn.mut] = (g.stats.muts[bn.mut] || 0) + 1;
             R.burst(bn.x + 0.5, bn.y + 0.5, bore.gem, 4);
           }
           R.floatText(PL.get().x, PL.get().y - 1.2,

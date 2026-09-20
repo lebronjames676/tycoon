@@ -12,6 +12,9 @@ reason to blow the whole thing up and start again richer.
 
 ![the island](docs/screenshot.png)
 
+![glowing seams](docs/mutations.png)
+*Glowing seams light the rock around them. In The Void that is the only light there is.*
+
 ![graded seams](docs/grades.png)
 *Graded seams glow and name themselves. Pristine pays 12x the ore, Flawless a full 40x.*
 
@@ -122,6 +125,12 @@ automatically.
   Flawless (40x) when it spawns. Graded rock glows, rings the ground and names
   itself, and your luck widens every band - which is what finally makes
   lanterns, scanners and assay offices worth stacking
+- **Mutations**: a second, far rarer roll that changes what the ore is *worth*
+  rather than how much of it you get, and stacks with the grade. Cracked (x0.15),
+  Contaminated (x0.3) and Impure (x0.55) spoil a seam; Shiny (x2.5), Pure (x6),
+  Glowing (x15, and it lights the cave), Radioactive (x40) and Ancient (x120)
+  make one. Mutated ore is its own stack in your bag, crafting spends the junk
+  first, and luck pushes the roll away from slag and towards treasure
 - Node health, cracking, damage numbers and respawn timers
 - Six buried structures - fossils, geodes, abandoned mineshafts, crystal
   formations, meteorites and void rifts - that appear as loose mounds until
