@@ -43,6 +43,7 @@
       questLog: carry.questLog || [],
       contracts: [],
       contractsDone: carry.contractsDone || 0,
+      tut: carry.tut || null,
       autoMine: true,
       lastSeen: U.now(),
       playerX: D.SPAWN.x + 0.5,
@@ -541,6 +542,7 @@
       achievements: game.achievements,
       stats: game.stats,
       contractsDone: game.contractsDone,
+      tut: { step: 0, done: true, flags: {}, seen: {} },
       quest: game.quest,
       questLog: game.questLog
     };
@@ -598,6 +600,11 @@
       /* never strand a save in a dimension its rebirth count no longer allows */
       if (st.rebirths < D.DIMENSIONS[st.dim].rebirths) st.dim = 0;
       if (!Array.isArray(st.questLog)) st.questLog = [];
+      /* a save made before the tutorial existed belongs to someone who
+         already knows the game - do not make them sit through it */
+      if (!st.tut) {
+        st.tut = { step: 0, done: (st.quest > 0 || st.stats.nodes > 20), flags: {}, seen: {} };
+      }
       st.size = U.clamp(st.size | 0, D.START_SIZE, D.MAX_SIZE);
       st.layersUnlocked = U.clamp(st.layersUnlocked | 0, 1, D.LAYERS.length);
       st.layer = U.clamp(st.layer | 0, 0, st.layersUnlocked - 1);

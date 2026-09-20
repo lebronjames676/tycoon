@@ -141,6 +141,7 @@
 
   UI.open = function (name) {
     if (!RENDER[name]) return;
+    if (root.TUT) TUT.note('panel', name);
     if (openPanel === name) { UI.close(); return; }
     openPanel = name;
     dom.overlay.classList.remove('hidden');
@@ -189,7 +190,8 @@
     return '<div class="card' + (opts.owned ? ' owned' : '') + (opts.wide ? ' wide' : '') + '">' +
       (opts.tag ? '<span class="tag' + (opts.tagLock ? ' lock' : '') + '">' + opts.tag + '</span>' : '') +
       '<h3>' + (opts.dot ? '<i class="dot" style="background:' + opts.dot + '"></i>' : '') +
-      (opts.icon ? opts.icon + ' ' : '') + U.esc(opts.name) + '</h3>' +
+      (opts.img ? '<img class="pix" src="' + opts.img + '" alt="">' : '') +
+      (opts.icon && !opts.img ? opts.icon + ' ' : '') + U.esc(opts.name) + '</h3>' +
       (opts.desc ? '<p>' + opts.desc + '</p>' : '') +
       (opts.req ? '<div class="req">' + opts.req + '</div>' : '') +
       (opts.price ? '<div class="price' + (opts.priceBad ? ' bad' : '') + (opts.cores ? ' cores' : '') + '">' + opts.price + '</div>' : '') +
@@ -230,7 +232,7 @@
       total += v;
       var prot = S.isProtected(id);
       if (prot) total -= v;
-      rows += '<div class="row"><i class="dot" style="background:' + ore.color + '"></i>' +
+      rows += '<div class="row"><img class="pix sm" src="' + P.oreIcon(id, 22) + '" alt="">' +
         '<span class="grow">' + ore.name +
         (prot ? ' <span class="sub" style="color:var(--teal)">&#9679; kept</span>' : '') + '</span>' +
         '<span class="sub">x' + U.fmt(n) + '</span>' +
@@ -324,6 +326,23 @@
   /* ---------------------------------------------------------
      BUILD
      --------------------------------------------------------- */
+  var BONUS_LABEL = {
+    smelt: 'sell value', refine: 'sell value', vault: 'money', altar: 'prestige cores'
+  };
+
+  function buildEffect(b) {
+    var pct = function (v) { return '+' + Math.round(v * 100) + '%'; };
+    if (b.capacity) return '+' + U.fmt(b.capacity) + ' ore of storage';
+    if (b.rate) return b.rate + (b.ships || b.id === 'convey' ? ' ore/s shipped' : ' ore/s mined');
+    if (b.power > 0) return '+' + b.power + ' power';
+    if (b.respawn) return pct(b.respawn) + ' faster ore respawn';
+    if (b.playerPower) return pct(b.playerPower) + ' to your own mining power';
+    if (b.luck) return pct(b.luck) + ' rare ore chance';
+    if (b.doubleOre) return pct(b.doubleOre) + ' double drop chance';
+    if (b.bonus) return pct(b.bonus) + ' ' + (BONUS_LABEL[b.id] || 'bonus');
+    return '';
+  }
+
   RENDER.build = function () {
     var g = S.get(), pw = S.power(), r = E.rates();
     var free = W.freeBuildTiles();
@@ -346,11 +365,9 @@
       var owned = S.countBuilding(b.id);
       var cost = S.buildingCost(b.id);
       var afford = g.money >= cost && free > 0;
-      var effect = b.capacity ? '+' + U.fmt(b.capacity) + ' ore of storage'
-        : b.rate ? (b.id === 'convey' ? b.rate + ' ore/s shipped' : b.rate + ' ore/s mined')
-        : (b.power > 0 ? '+' + b.power + ' power' : '+' + Math.round(b.bonus * 100) + '% bonus');
+      var effect = buildEffect(b);
       html += card({
-        icon: b.icon, name: b.name,
+        img: P.buildingIcon(b.id), name: b.name,
         tag: owned ? 'x' + owned : null,
         desc: U.esc(b.desc),
         req: effect + (b.power < 0 ? ' &middot; uses <b>' + (-b.power) + '</b> power' : ''),
@@ -627,7 +644,7 @@
           'is never sold by the market pad or your conveyors, and still counts towards crafting ' +
           'recipes and guild contracts.</div>' +
           '<div class="grid">' + card({
-            icon: D.BUILD_BY_ID.store.icon, name: 'Warehouse', wide: true,
+            img: P.buildingIcon('store'), name: 'Warehouse', wide: true,
             desc: U.esc(D.BUILD_BY_ID.store.desc),
             price: U.fmtMoney(S.buildingCost('store')),
             priceBad: g.money < S.buildingCost('store'),
@@ -662,7 +679,7 @@
       var inBag = g.inv[o.id] || 0, inShed = g.store[o.id] || 0;
       var worth = inShed * S.oreValue(o.id, g.deepest);
       html += '<div class="row">' +
-        '<i class="dot" style="background:' + o.color + '"></i>' +
+        '<img class="pix sm" src="' + P.oreIcon(o.id, 22) + '" alt="">' +
         '<span class="grow">' + o.name +
         '<br><span class="sub">bag ' + U.fmt(inBag) + ' &middot; stored ' + U.fmt(inShed) + '</span></span>' +
         (inShed > 0 ? '<button class="btn" data-act="sellStored" data-id="' + o.id + '" ' +
@@ -705,7 +722,7 @@
       var pay = S.contractPay(c);
       var reroll = S.rerollCost(c);
       html += '<div class="card' + (ready ? ' owned' : '') + '">' +
-        '<h3><i class="dot" style="background:' + ore.color + '"></i>' + c.need + ' x ' + ore.name + '</h3>' +
+        '<h3><img class="pix" src="' + P.oreIcon(c.ore, 22) + '" alt="">' + c.need + ' x ' + ore.name + '</h3>' +
         '<p>Deliver ' + U.fmt(c.need) + ' ' + ore.name + ' for ' + U.fmtMoney(pay) +
         ' and ' + U.fmt(D.contractReward(c).xp) + ' xp.</p>' +
         '<div class="req">In bag <b class="' + (ready ? '' : 'miss') + '">' +
@@ -763,7 +780,7 @@
     D.ORES.forEach(function (o) {
       var n = g.stats.mined[o.id] || 0;
       if (!n) return;
-      mined += '<div class="row"><i class="dot" style="background:' + o.color + '"></i>' +
+      mined += '<div class="row"><img class="pix sm" src="' + P.oreIcon(o.id, 22) + '" alt="">' +
         '<span class="grow">' + o.name + '</span><span class="num">' + U.fmt(n) + '</span></div>';
     });
     if (mined) html += '<div class="section"><h4>Ore mined (all time)</h4><div class="rows">' + mined + '</div></div>';
@@ -837,6 +854,7 @@
     html += '<div class="section"><h4>Save file</h4>' +
       '<div class="note">The game saves to this browser every 15 seconds and whenever you close the tab.</div>' +
       '<div class="grid">' +
+      '<button class="btn" data-act="replayTutorial">REPLAY THE TUTORIAL</button>' +
       '<button class="btn" data-act="saveNow">SAVE NOW</button>' +
       '<button class="btn" data-act="exportSave">COPY SAVE TO CLIPBOARD</button>' +
       '<button class="btn" data-act="importSave">PASTE A SAVE</button>' +
@@ -975,6 +993,8 @@
         Game.sfx('sell');
       }
     },
+
+    replayTutorial: function () { UI.close(); TUT.restart(); },
 
     saveNow: function () { S.save(); UI.toast('Saved'); },
 

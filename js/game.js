@@ -104,6 +104,7 @@
       return;
     }
     S.get(); /* value already banked by the sell helpers */
+    TUT.note('flag', 'soldAll');
     UI.toast('Sold ' + U.fmt(units) + ' ore for ' + U.fmtMoney(money) +
              (ratio < 1 ? ' (25% courier fee)' : ''), 'gold');
     R.floatText(PL.get().x, PL.get().y, '+' + U.fmtMoney(money), '#f5c04e', 2);
@@ -150,6 +151,7 @@
     W.reset();
     W.populate(true);
     S.ensureContracts();
+    TUT.init();
     PL.init();
     PL.teleportToShaft();
     R.invalidate();
@@ -427,8 +429,10 @@
       g.tip = (g.tip + 1) % D.TIPS.length;
     }
 
+    TUT.update(dt);
     updateHint();
     updateSellButton();
+    R.setGuide(TUT.guide());
     R.draw(dt, ts / 1000, PL.get(), Game.buildMode() || demolish);
     UI.updateHud();
     UI.tick(dt);
@@ -503,6 +507,7 @@
     lastLevel = state.level;
     UI.updateHud();
     updateHint();
+    TUT.init();
 
     U.$('#btnAutoMine').classList.toggle('on', state.autoMine);
 

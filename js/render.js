@@ -102,6 +102,38 @@
 
   R.setHover = function (tile) { hoverTile = tile; };
 
+  var guideTile = null;
+  R.setGuide = function (tile) { guideTile = tile; };
+
+  /* a bouncing chevron over whatever the tutorial is pointing at */
+  function drawGuide(ox, oy, t) {
+    if (!guideTile) return;
+    var gx = ox + isoX(guideTile.x + 0.5, guideTile.y + 0.5);
+    var gy = oy + isoY(guideTile.x + 0.5, guideTile.y + 0.5);
+    if (gx < -60 || gx > bw + 60 || gy < -60 || gy > bh + 60) return;
+
+    var bob = Math.round(Math.sin(t * 4) * 3);
+    var ringPulse = (t * 1.2) % 1;
+
+    ctx.strokeStyle = 'rgba(88,200,182,' + (0.75 - ringPulse * 0.75).toFixed(2) + ')';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(gx, gy + TH / 2, 10 + ringPulse * 18, 5 + ringPulse * 9, 0, 0, 6.2832);
+    ctx.stroke();
+
+    var ay = gy - 26 + bob;
+    ctx.fillStyle = '#101418';
+    ctx.fillRect(gx - 6, ay - 1, 12, 10);
+    ctx.fillStyle = '#58c8b6';
+    for (var i = 0; i < 5; i++) ctx.fillRect(gx - 5 + i, ay + i, 11 - i * 2, 1);
+    ctx.fillRect(gx - 2, ay - 5, 4, 5);
+
+    if (guideTile.label) {
+      P.text(ctx, guideTile.label, gx, ay - 15,
+             { align: 'center', scale: 1, color: '#8ee6c8', plate: true });
+    }
+  }
+
   /* debug helper: what is currently floating on screen */
   R.debugFloats = function () {
     return floats.map(function (f) {
@@ -591,6 +623,7 @@
     stepEffects(dt);
     drawEntities(ox, oy, layer, t, player);
     drawEffects(ox, oy);
+    drawGuide(ox, oy, t);
     if (layer > 0) drawDarkness(layer, player, ox, oy);
   };
 

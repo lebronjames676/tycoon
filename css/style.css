@@ -161,6 +161,12 @@ canvas#world{
 }
 .card h3{font-size:12.5px;letter-spacing:.4px;display:flex;align-items:center;gap:6px}
 .card h3 .dot{width:10px;height:10px;border-radius:2px;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.5)}
+img.pix{
+  image-rendering:pixelated;image-rendering:crisp-edges;
+  width:40px;height:40px;flex:none;margin:-6px 3px -6px -2px;
+  background:#0f151b;border:1px solid var(--line);border-radius:4px;
+}
+img.pix.sm{width:26px;height:26px;margin:0}
 .card p{font-size:11px;color:var(--muted);line-height:1.5}
 .card .price{font-size:11.5px;font-weight:800;color:var(--gold)}
 .card .price.cores{color:var(--violet)}
@@ -209,6 +215,53 @@ canvas#world{
 .big{font-size:22px;font-weight:800;color:var(--violet);letter-spacing:1px}
 .center{text-align:center}
 .wide{grid-column:1/-1}
+
+/* ---------- tutorial coach ---------- */
+#tutorial{
+  position:absolute;left:50%;transform:translateX(-50%);bottom:76px;z-index:12;
+  width:min(520px,calc(100% - 96px));
+  background:var(--ink-2);border:2px solid var(--teal);border-radius:8px;
+  box-shadow:0 8px 0 rgba(0,0,0,.5),0 0 26px rgba(88,200,182,.22);
+  padding:10px 13px 12px;animation:coach .25s ease-out;
+}
+@keyframes coach{from{opacity:0;transform:translate(-50%,14px)}}
+#tutorial.final{border-color:var(--gold);box-shadow:0 8px 0 rgba(0,0,0,.5),0 0 26px rgba(245,192,78,.25)}
+#tutorial > header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+#tutorial .badge{
+  font-size:9px;font-weight:800;letter-spacing:1.4px;padding:2px 7px;border-radius:3px;
+  background:var(--teal-dk);color:#fff;
+}
+#tutorial.final .badge{background:var(--gold-dk);color:#fff}
+#tutStep{font-size:10.5px;color:var(--muted);font-weight:700;letter-spacing:.6px}
+#tutSkip{
+  margin-left:auto;background:none;border:none;color:#6d8496;font-size:10px;font-weight:700;
+  letter-spacing:.8px;cursor:pointer;padding:3px 5px;border-radius:3px;font-family:inherit;
+}
+#tutSkip:hover{color:var(--rose);background:rgba(224,91,106,.12)}
+#tutorial h3{font-size:14.5px;letter-spacing:.3px;color:var(--teal);margin-bottom:4px}
+#tutorial.final h3{color:var(--gold)}
+#tutorial p{font-size:12px;line-height:1.6;color:var(--text);opacity:.92}
+#tutorial .objective{
+  display:flex;align-items:center;gap:8px;margin-top:8px;padding:6px 9px;
+  background:#131b23;border-left:3px solid var(--teal);border-radius:0 4px 4px 0;
+  font-size:11.5px;font-weight:700;
+}
+#tutorial.final .objective{border-left-color:var(--gold)}
+#tutMeter{margin-left:auto;color:var(--gold);font-weight:800;font-size:11px}
+#tutNext{
+  margin-top:9px;width:100%;padding:9px;border-radius:5px;cursor:pointer;font-family:inherit;
+  font-size:11.5px;font-weight:800;letter-spacing:1px;
+  background:var(--gold);border:2px solid #ffe29a;color:#3a2a06;
+}
+
+/* the thing the tutorial wants you to press */
+#menu button.tutfocus,#btnSellAll.tutfocus{
+  border-color:var(--teal);animation:tutpulse 1.1s infinite;
+}
+@keyframes tutpulse{
+  0%,100%{box-shadow:var(--shadow),0 0 0 0 rgba(88,200,182,.6)}
+  50%{box-shadow:var(--shadow),0 0 0 7px rgba(88,200,182,0)}
+}
 
 /* ---------- toasts ---------- */
 #toasts{
@@ -295,5 +348,10 @@ canvas#world{
   #touchpad .mineBtn{width:76px;height:76px;bottom:8px}
   #touchpad .useBtn{width:52px;height:52px;bottom:92px}
   .panel{max-height:82vh}
+  /* keep the left menu column clear so the highlighted button is visible */
+  #tutorial{width:auto;bottom:auto;top:76px;left:52px;right:8px;transform:none;padding:8px 10px 10px}
+  #tutorial h3{font-size:13px}
+  #tutorial p{font-size:11px}
+  #tutorial .objective{font-size:10.5px}
   #splash h1{letter-spacing:3px}
 }

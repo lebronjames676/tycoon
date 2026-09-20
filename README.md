@@ -15,6 +15,15 @@ reason to blow the whole thing up and start again richer.
 ![the moon](docs/moon.png)
 *Rebirth five times and the shard flies to the Moon: low gravity, Earth overhead, and ore worth two hundred times what the home island pays.*
 
+## Getting started
+
+A new save opens with an eleven-step tutorial that watches the real game state —
+nothing is scripted or faked, you genuinely do each thing. It walks you from your
+first steps through mining, selling, crafting, the warehouse, automation, bulk
+selling, the quest log and the travel screen, pointing an arrow at the market pad
+and pulsing the menu button you need. It can be skipped at any point and replayed
+from the Field Manual.
+
 ## Play
 
 Open `index.html` in any modern browser, or serve the folder:
@@ -115,6 +124,8 @@ automatically.
 - Forty-one achievements paying out cash and cores
 - Repeatable guild contracts with a reroll cost
 - Twelve prestige perks including Head Start, which seeds the next run with gear
+- An eleven-step tutorial driven by real game state, skippable and replayable
+- Build and bag panels illustrated with the same sprites the world draws
 - Save export/import, zoom, mute, mobile controls
 
 ## Layout
@@ -131,6 +142,7 @@ js/render.js      isometric renderer, island strata, caves, effects
 js/player.js      walking, swinging, selling
 js/economy.js     building production, auto-selling, offline catch-up
 js/ui.js          HUD, panels, toasts
+js/tutorial.js    the guided opening for a new save
 js/game.js        boot, input, main loop, audio
 ```
 

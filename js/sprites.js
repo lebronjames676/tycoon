@@ -576,5 +576,71 @@
     }
   };
 
+  /* ---------------------------------------------------------
+     Icons - the very same sprites the world uses, baked into
+     data URLs so the HTML panels can show them
+     --------------------------------------------------------- */
+  var iconCache = {};
+
+  function offscreen(size) {
+    var cv = document.createElement('canvas');
+    cv.width = size; cv.height = size;
+    var c = cv.getContext('2d');
+    c.imageSmoothingEnabled = false;
+    return { cv: cv, ctx: c };
+  }
+
+  /* a machine, drawn exactly as it appears on the island */
+  /* t is frozen a little way into the animation so moving parts - the
+     excavator boom, the maglev pod, the generator lamp - sit somewhere
+     recognisable rather than at their zero position */
+  P.ICON_T = 0.35;
+  P.ICON_SIZE = 22;
+
+  P.buildingIcon = function (id, size) {
+    size = size || P.ICON_SIZE;
+    var key = 'b:' + id + ':' + size;
+    if (iconCache[key]) return iconCache[key];
+    var o = offscreen(size);
+    try {
+      P.building(o.ctx, id, Math.floor(size / 2), size - 2, P.ICON_T);
+      iconCache[key] = o.cv.toDataURL();
+    } catch (e) {
+      iconCache[key] = '';
+    }
+    return iconCache[key];
+  };
+
+  /* a lump of ore, drawn as a fresh undamaged node */
+  P.oreIcon = function (oreId, size) {
+    size = size || 22;
+    var key = 'o:' + oreId + ':' + size;
+    if (iconCache[key]) return iconCache[key];
+    var ore = D.ORE_BY_ID[oreId];
+    if (!ore) return '';
+    var o = offscreen(size);
+    try {
+      P.rock(o.ctx, Math.floor(size / 2), size - 4, ore,
+             { seed: 1234 + ore.index * 7, hp: 1, maxHp: 1 }, 0);
+      iconCache[key] = o.cv.toDataURL();
+    } catch (e) {
+      iconCache[key] = '';
+    }
+    return iconCache[key];
+  };
+
+  /* the miner, for the tutorial card */
+  P.minerIcon = function (size) {
+    size = size || 24;
+    var key = 'm:' + size;
+    if (iconCache[key]) return iconCache[key];
+    var o = offscreen(size);
+    try {
+      P.miner(o.ctx, Math.floor(size / 2), size - 3, { face: 1, walking: false, t: 0, swing: -1 });
+      iconCache[key] = o.cv.toDataURL();
+    } catch (e) { iconCache[key] = ''; }
+    return iconCache[key];
+  };
+
   root.P = P;
 })(window);
