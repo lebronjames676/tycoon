@@ -79,6 +79,38 @@
   };
 
   /* ---------------------------------------------------------
+     Sell the lot - the market pad in one press
+     --------------------------------------------------------- */
+  Game.sellEverything = function () {
+    var g = S.get();
+    var onPad = PL.standingOn() === 'market';
+    var ratio = (onPad || S.countBuilding('convey') > 0 || S.countBuilding('maglev') > 0) ? 1 : 0.75;
+
+    var bag = E.sellAll(ratio);
+    /* standing on the pad also clears anything sitting in the warehouses
+       that is no longer marked to keep */
+    var shed = { money: 0, units: 0 };
+    if (onPad) {
+      for (var id in g.store) {
+        if (g.keep[id]) continue;
+        var r = E.sellStored(id, g.store[id]);
+        shed.money += r.money; shed.units += r.units;
+      }
+    }
+
+    var money = bag.money + shed.money, units = bag.units + shed.units;
+    if (units <= 0) {
+      UI.toast(S.carried() > 0 ? 'Everything you are carrying is marked to keep' : 'Nothing to sell');
+      return;
+    }
+    S.get(); /* value already banked by the sell helpers */
+    UI.toast('Sold ' + U.fmt(units) + ' ore for ' + U.fmtMoney(money) +
+             (ratio < 1 ? ' (25% courier fee)' : ''), 'gold');
+    R.floatText(PL.get().x, PL.get().y, '+' + U.fmtMoney(money), '#f5c04e', 2);
+    Game.sfx('sell');
+  };
+
+  /* ---------------------------------------------------------
      Events fired from other modules
      --------------------------------------------------------- */
   Game.onNodeBroken = function (ore, layer) {
@@ -86,6 +118,24 @@
     if (ore.index >= 8) {
       UI.toast('Struck ' + ore.name + '!', ore.index >= 10 ? 'epic' : 'gold');
     }
+  };
+
+  Game.onTravel = function (dim) {
+    W.reset();
+    W.populate(true);
+    PL.init();
+    R.invalidate();
+    R.kick(4);
+    Game.sfx('travel');
+    UI.close();
+    UI.toast('The shard drifts to ' + dim.name, 'epic');
+    UI.custom(dim.name, '<div class="card wide center" style="padding:18px">' +
+      '<div class="big">' + U.esc(dim.name).toUpperCase() + '</div>' +
+      '<p>' + U.esc(dim.tagline) + '</p>' +
+      '<p style="color:var(--teal)"><b>' + U.esc(dim.twist) + '</b></p>' +
+      '<p style="opacity:.75">Average ore here is worth <b>' + U.fmtMoney(S.dimAvgValue(dim.index)) +
+      '</b> against <b>' + U.fmtMoney(S.dimAvgValue(0)) + '</b> back home.</p>' +
+      '<button data-act="none">START DIGGING</button></div>');
   };
 
   Game.doRebirth = function () {
@@ -137,6 +187,7 @@
     if (e.code === 'KeyE') { contextDown(); e.preventDefault(); }
     if (e.code === 'KeyQ') { contextUp(); e.preventDefault(); }
     if (e.code === 'KeyM') { muted = !muted; UI.toast(muted ? 'Sound off' : 'Sound on'); }
+    if (e.code === 'KeyF') { Game.sellEverything(); e.preventDefault(); }
     if (e.code === 'Equal' || e.code === 'NumpadAdd') UI.toast('Zoom x' + R.setZoom(R.getZoom() + 1));
     if (e.code === 'Minus' || e.code === 'NumpadSubtract') UI.toast('Zoom x' + R.setZoom(R.getZoom() - 1));
     if (e.code === 'Space') e.preventDefault();
@@ -146,6 +197,7 @@
 
   function contextDown() {
     var g = S.get();
+    if (PL.standingOn() === 'gate') { UI.open('depths'); return; }
     if (!PL.nearShaft()) {
       UI.toast('Stand on the mineshaft first', 'bad');
       return;
@@ -160,7 +212,7 @@
     W.changeLayer(1);
     PL.init();
     Game.sfx('travel');
-    UI.toast('Descending to the ' + D.LAYERS[S.get().layer].name);
+    UI.toast('Descending to the ' + S.layer(S.get().layer).name);
   }
 
   function contextUp() {
@@ -170,7 +222,7 @@
     W.changeLayer(-1);
     PL.init();
     Game.sfx('travel');
-    UI.toast('Back to the ' + D.LAYERS[S.get().layer].name);
+    UI.toast('Back to the ' + S.layer(S.get().layer).name);
   }
 
   function worldClick(e, isRight) {
@@ -244,6 +296,7 @@
 
     window.addEventListener('resize', function () { R.resize(); });
 
+    U.$('#btnSellAll').addEventListener('click', function () { Game.sellEverything(); });
     U.$('#btnAutoMine').addEventListener('click', function () {
       var g = S.get();
       g.autoMine = !g.autoMine;
@@ -375,9 +428,33 @@
     }
 
     updateHint();
+    updateSellButton();
     R.draw(dt, ts / 1000, PL.get(), Game.buildMode() || demolish);
     UI.updateHud();
     UI.tick(dt);
+  }
+
+  var sellBtn = null;
+  function updateSellButton() {
+    if (!sellBtn) sellBtn = U.$('#btnSellAll');
+    if (!sellBtn) return;
+    var g = S.get(), value = 0;
+    for (var id in g.inv) {
+      if (S.isProtected(id)) continue;
+      value += S.oreValue(id, g.deepest) * g.inv[id];
+    }
+    var onPad = PL.standingOn() === 'market';
+    if (onPad) {
+      for (var sid in g.store) {
+        if (g.keep[sid]) continue;
+        value += S.oreValue(sid, g.deepest) * g.store[sid];
+      }
+    } else if (!(S.countBuilding('convey') || S.countBuilding('maglev'))) {
+      value *= 0.75;
+    }
+    sellBtn.disabled = value <= 0;
+    sellBtn.classList.toggle('ready', onPad && value > 0);
+    sellBtn.textContent = value > 0 ? 'SELL ALL ' + U.fmtMoney(value) : 'SELL ALL';
   }
 
   function updateHint() {
@@ -385,8 +462,17 @@
     var where = PL.standingOn();
     if (demolish) { UI.setHint('<b style="color:var(--rose)">Demolish mode</b> - tap a building to sell it back.'); return; }
     if (buildChoice) { UI.setHint('<b style="color:var(--ok)">Placing ' + D.BUILD_BY_ID[buildChoice].name + '</b> - tap a free tile. ESC to cancel.'); return; }
-    if (where === 'market') { UI.setHint('<b style="color:var(--gold)">Market pad</b> - your ore is selling automatically.'); return; }
+    if (where === 'market') {
+      UI.setHint('<b style="color:var(--gold)">Market pad</b> - ore is selling automatically. ' +
+        'Press <span class="kbd">F</span> to dump the whole bag and your warehouses at once.');
+      return;
+    }
     if (where === 'shaft') { UI.setHint('<b>Mineshaft</b> - <span class="kbd">E</span> down, <span class="kbd">Q</span> up.'); return; }
+    if (where === 'gate') {
+      UI.setHint('<b style="color:var(--violet)">Warp gate</b> - press <span class="kbd">E</span> to pick a dimension. ' +
+        S.dimsUnlocked() + ' of ' + D.DIMENSIONS.length + ' unlocked.');
+      return;
+    }
     if (g.layer === 0 && W.nearestWarehouse(PL.get().x, PL.get().y, 2.2)) {
       UI.setHint('<b style="color:var(--teal)">Warehouse</b> - dropping off everything marked to keep. ' +
         'Stored <b>' + U.fmt(S.stored()) + ' / ' + U.fmt(S.storageCap()) + '</b>');

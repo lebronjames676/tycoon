@@ -38,14 +38,15 @@
   /* average $ per ore unit produced at the deepest layer */
   E.avgOreValue = function () {
     var g = S.get(), layer = g.deepest, total = 0, weight = 0;
-    for (var i = 0; i < D.ORES.length; i++) {
-      var o = D.ORES[i], w = o.w[layer] || 0;
+    var list = S.dimOres();
+    for (var i = 0; i < list.length; i++) {
+      var o = list[i], w = o.w[layer] || 0;
       if (w <= 0) continue;
       weight += w;
       total += w * o.value;
     }
     if (!weight) return 0;
-    return (total / weight) * D.LAYERS[layer].valMult * S.derive().valueMult;
+    return (total / weight) * S.layer(layer).valMult * S.derive().valueMult;
   };
 
   E.incomePerSec = function () {
@@ -167,7 +168,7 @@
       popTimer = 1.6;
       if (popAccum > 0) {
         var pl = PL.get();
-        R.floatText(pl.x, pl.y - 0.6, '+' + U.fmtMoney(popAccum), '#8ee6c8', 1);
+        R.floatText(pl.x, pl.y - 0.6, '+' + U.fmtMoney(popAccum), '#f5c04e', 1);
         popAccum = 0;
       }
     }

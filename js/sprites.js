@@ -93,17 +93,32 @@
     if (opts.align === 'center') x -= Math.floor(P.textWidth(str, scale) / 2);
     var cx = Math.round(x), cy = Math.round(y), i, j, g;
 
+    /* a plate keeps small text readable over pale rock, bright suns and
+       whatever palette the current dimension happens to use */
+    if (opts.plate) {
+      var pw = P.textWidth(str, scale);
+      ctx.fillStyle = 'rgba(10,14,19,.72)';
+      ctx.fillRect(cx - 2, cy - 2, pw + 4, 7 * scale + 3);
+      ctx.fillStyle = 'rgba(10,14,19,.4)';
+      ctx.fillRect(cx - 3, cy - 1, 1, 7 * scale + 1);
+      ctx.fillRect(cx + pw + 2, cy - 1, 1, 7 * scale + 1);
+    }
+
     if (outline) {
       ctx.fillStyle = outline;
+      /* At scale 1 a full ring would be as thick as the strokes themselves and
+         would close the holes in 8, 5 and $, so small text gets a drop shadow
+         instead.  Larger text gets a crisp one-pixel ring. */
+      var ring = scale === 1 ? [[1, 1]]
+        : [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]];
       for (i = 0; i < str.length; i++) {
         g = GLYPH[str[i]] || GLYPH[' '];
         var gx = cx + i * 6 * scale;
         for (j = 0; j < g.length; j++) {
           var px = gx + g[j][0] * scale, py = cy + g[j][1] * scale;
-          ctx.fillRect(px - scale, py, scale, scale);
-          ctx.fillRect(px + scale, py, scale, scale);
-          ctx.fillRect(px, py - scale, scale, scale);
-          ctx.fillRect(px, py + scale, scale, scale);
+          for (var o = 0; o < ring.length; o++) {
+            ctx.fillRect(px + ring[o][0], py + ring[o][1], scale, scale);
+          }
         }
       }
     }

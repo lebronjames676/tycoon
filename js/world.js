@@ -34,6 +34,7 @@
   W.reserved = function (x, y) {
     if (x === D.SHAFT.x && y === D.SHAFT.y) return 'shaft';
     if (x === D.SELL.x && y === D.SELL.y) return 'market';
+    if (x === D.GATE.x && y === D.GATE.y) return 'gate';
     return null;
   };
 
@@ -81,12 +82,13 @@
      --------------------------------------------------------- */
   W.rollOre = function (layer) {
     var luck = S.derive().luck;
-    var ore = U.weighted(D.ORES, function (o) {
+    var list = S.dimOres();
+    var ore = U.weighted(list, function (o) {
       var w = o.w[layer] || 0;
       if (w <= 0) return 0;
-      return w * (1 + luck * o.index * 0.5);
+      return w * (1 + luck * o.rank * 0.5);
     });
-    return ore || D.ORE_BY_ID.stone;
+    return ore || list[0];
   };
 
   W.targetNodes = function (layer) {
@@ -103,7 +105,7 @@
       var x = U.randInt(b.x0, b.x1), y = U.randInt(b.y0, b.y1);
       if (!W.tileFreeForNode(layer, x, y)) continue;
       var ore = W.rollOre(layer);
-      var maxHp = Math.ceil(ore.hp * D.LAYERS[layer].hpMult);
+      var maxHp = Math.ceil(ore.hp * S.layer(layer).hpMult);
       var node = {
         x: x, y: y, ore: ore.id, hp: maxHp, maxHp: maxHp,
         seed: U.randInt(1, 99999), born: U.now(), pop: silent ? 0 : 1
@@ -178,7 +180,7 @@
   W.nextLayerCost = function () {
     var g = S.get();
     if (g.layersUnlocked >= D.LAYERS.length) return null;
-    return D.LAYERS[g.layersUnlocked].cost;
+    return S.layer(g.layersUnlocked).cost;
   };
 
   W.unlockLayer = function () {

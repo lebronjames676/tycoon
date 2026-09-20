@@ -12,6 +12,9 @@ reason to blow the whole thing up and start again richer.
 
 ![the island](docs/screenshot.png)
 
+![the moon](docs/moon.png)
+*Rebirth five times and the shard flies to the Moon: low gravity, Earth overhead, and ore worth two hundred times what the home island pays.*
+
 ## Play
 
 Open `index.html` in any modern browser, or serve the folder:
@@ -30,8 +33,10 @@ The Field Manual panel can export the save as a string and paste one back in.
 | --- | --- |
 | Move | `W` `A` `S` `D` or the arrow keys |
 | Swing the pickaxe | hold `SPACE` (auto-swing is on by default) |
+| Sell the whole bag at once | `F`, or the SELL ALL button |
 | Walk somewhere | click a tile |
 | Ride the mineshaft down / up | `E` / `Q` |
+| Open Travel from the warp gate | `E` while standing on it |
 | Place or demolish a building | click / right-click in build mode |
 | Zoom | `+` `-` or the scroll wheel |
 | Panels | `I` bag, `C` craft, `B` build, `K` warehouse, `X` island, `V` depths, `Y` quests, `J` jobs, `R` rebirth, `T` records, `?` help |
@@ -45,8 +50,10 @@ automatically.
 
 1. **Mine.** Stand next to a boulder and swing. Ore goes into your bag, which has
    a hard capacity.
-2. **Sell.** Walk onto the golden market pad to cash out at full price. Selling
-   from the field costs a 25% courier fee until you own a conveyor.
+2. **Sell.** Walk onto the golden market pad to cash out at full price, or press
+   `F` anywhere to dump the whole bag in one go — on the pad that empties your
+   warehouses of anything not marked *keep* as well. Selling from the field
+   costs a 25% courier fee until you own a conveyor.
 3. **Craft.** Six independent upgrade chains — pickaxe, bag, boots, gloves, charm
    and lantern — each cost ore plus cash, and each gates behind a mining level.
 4. **Store.** A warehouse holds ore outside your bag. Tick the ore types you want
@@ -62,15 +69,28 @@ automatically.
    ore scanners surface rarer ore and blast sheds double your drops.
 6. **Expand.** A wider island carries more ore veins on every layer and more room
    for machines, up to 20×20.
-7. **Dig deeper.** Six layers, from the Surface down to The Void. Each multiplies
-   both rock toughness and ore value, and your buildings always work the deepest
-   layer you have unlocked.
-8. **Take contracts.** The sky guild posts three delivery jobs at a time that pay
+7. **Dig deeper.** Six layers per dimension. Each multiplies both rock toughness
+   and ore value, and your buildings always work the deepest layer you own.
+8. **Fly somewhere new.** Rebirth milestones unlock whole dimensions, each with
+   its own ore table, palette, depth names and rules:
+
+   | Dimension | Unlocks at | Twist |
+   | --- | --- | --- |
+   | Sky Shard | start | home |
+   | The Moon | 5 rebirths | low gravity: +45% move speed, veins respawn 30% slower |
+   | The Asteroid Belt | 15 rebirths | dense pockets: +25% double drops |
+   | The Solar Forge | 30 rebirths | blistering heat: machines 2x, your swing 20% slower |
+   | Nebula Reach | 60 rebirths | strange matter: rare ore twice as likely, very dark |
+   | The Singularity | 100 rebirths | time dilation: machines 3x, your hands at half speed |
+
+   Average ore runs from $5.65K at home to $3.95Qa in The Singularity, and the
+   rock gets proportionally harder, so each one gates itself on your mining power.
+9. **Take contracts.** The sky guild posts three delivery jobs at a time that pay
    roughly triple the market rate plus a lump of experience.
-9. **Follow the quest log.** Twenty-six quests form one long chain that carries
+10. **Follow the quest log.** Thirty-one quests form one long chain that carries
    across rebirths, from breaking your first ten nodes to earning a trillion
    dollars. They complete themselves the moment you meet them.
-10. **Rebirth.** Once a life has earned enough, trade the island, the money, the
+11. **Rebirth.** Once a life has earned enough, trade the island, the money, the
     gear and the machines for Prestige Cores. Cores are permanent (+3% money and
     +1% mining power each) and buy twelve stacking perks. Twelve **rebirth
     milestones** unlock on rebirth count alone — seed money at 3, the Shallow
@@ -79,18 +99,20 @@ automatically.
 
 ## Mechanics in the box
 
-- Twelve ores from Stone to Star Core, each with its own spawn weights per depth
+- Forty-two ores across six dimensions, each with its own spawn weights per depth
 - Node health, cracking, damage numbers and respawn timers
 - Mining levels and experience, feeding power and movement speed
 - Carry capacity with overflow auto-selling so idle progress never fully stalls
 - Warehouses with per-ore keep/sell selection, feeding crafting and contracts
 - A power grid: drills run at reduced efficiency when generators cannot keep up
 - Offline production with a configurable rate and an eight-hour cap
-- A 26-quest chain with live progress tracking in the action bar
+- Six dimensions with their own ore tables, skies, planets and rules
+- A 31-quest chain with live progress tracking in the action bar
 - Seven milestone tracks, eight tiers each, paying permanent stacking bonuses
   read from all-time totals so they survive every rebirth
-- Twelve rebirth milestones keyed to rebirth count alone
-- Thirty-nine achievements paying out cash and cores
+- Sixteen rebirth milestones keyed to rebirth count alone, five of which
+  unlock a dimension
+- Forty-one achievements paying out cash and cores
 - Repeatable guild contracts with a reroll cost
 - Twelve prestige perks including Head Start, which seeds the next run with gear
 - Save export/import, zoom, mute, mobile controls

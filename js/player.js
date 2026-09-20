@@ -9,7 +9,7 @@
   var me = {
     x: 0, y: 0, face: 1, walking: false,
     swing: 0, swingPhase: -1, target: null,
-    sellTimer: 0, dropTimer: 0, bumpMsg: 0
+    sellTimer: 0, dropTimer: 0, bumpMsg: 0, sellPop: 0, sellPopTimer: 0
   };
 
   PL.get = function () { return me; };
@@ -134,15 +134,31 @@
   /* ---------------------------------------------------------
      Selling at the market pad
      --------------------------------------------------------- */
+  /* the pad settles a chunk every tick, but the numbers are pooled into one
+     popup so a big bag does not print a tower of them */
+  function flushSellPop() {
+    if (me.sellPop <= 0) return;
+    R.floatText(D.SELL.x + 0.5, D.SELL.y + 0.5, '+' + U.fmtMoney(me.sellPop), '#f5c04e', 1);
+    me.sellPop = 0;
+  }
+
   function sellTick(dt) {
     var g = S.get();
     if (g.layer !== 0) return;
     var onPad = Math.floor(me.x) === D.SELL.x && Math.floor(me.y) === D.SELL.y;
-    if (!onPad) { me.sellTimer = 0; return; }
+    if (!onPad) {
+      me.sellTimer = 0;
+      me.sellPopTimer = 0;
+      flushSellPop();
+      return;
+    }
+
+    me.sellPopTimer -= dt;
+    if (me.sellPopTimer <= 0) { me.sellPopTimer = 0.45; flushSellPop(); }
 
     me.sellTimer -= dt;
     if (me.sellTimer > 0) return;
-    me.sellTimer = 0.12;
+    me.sellTimer = 0.06;
 
     /* sell the most valuable unprotected stack first, a chunk at a time */
     var bestId = null, bestVal = 0;
@@ -154,7 +170,9 @@
     if (!bestId) return;
 
     var have = g.inv[bestId];
-    var chunk = Math.max(1, Math.ceil(have / 6));
+    /* clear a third of the stack per tick so a 14,000 ore bag still empties
+       in a couple of seconds rather than a minute */
+    var chunk = Math.max(1, Math.ceil(have / 3));
     var take = Math.min(have, chunk);
     var gained = S.oreValue(bestId, g.deepest) * take;
     g.inv[bestId] -= take;
@@ -162,7 +180,7 @@
     S.earn(gained);
     g.stats.sold += take;
 
-    R.floatText(D.SELL.x + 0.5, D.SELL.y + 0.5, '+' + U.fmtMoney(gained), '#f5c04e', 1);
+    me.sellPop += gained;
     Game.sfx('sell');
   }
 
@@ -248,6 +266,7 @@
     var tx = Math.floor(me.x), ty = Math.floor(me.y);
     if (tx === D.SHAFT.x && ty === D.SHAFT.y) return 'shaft';
     if (g.layer === 0 && tx === D.SELL.x && ty === D.SELL.y) return 'market';
+    if (g.layer === 0 && tx === D.GATE.x && ty === D.GATE.y && S.dimsUnlocked() > 1) return 'gate';
     return null;
   };
 

@@ -11,7 +11,7 @@
      Fresh state
      --------------------------------------------------------- */
   function blankStats() {
-    return { nodes: 0, mined: {}, sold: 0, swings: 0, playtime: 0, bestMoney: 0, totalEarned: 0, built: 0 };
+    return { nodes: 0, mined: {}, sold: 0, swings: 0, playtime: 0, bestMoney: 0, totalEarned: 0, built: 0, visited: { sky: 1 } };
   }
 
   S.create = function (carry) {
@@ -22,6 +22,7 @@
       lifeEarned: 0,
       size: D.START_SIZE,
       layer: 0,
+      dim: 0,
       layersUnlocked: 1,
       deepest: 0,
       inv: {},                 /* oreId -> count carried in the bag  */
@@ -81,7 +82,8 @@
      Rebirth milestones - everything unlocked by rebirth count
      --------------------------------------------------------- */
   S.rebirthBonuses = function (rebirths) {
-    var out = { money: 0, power: 0, build: 0, cores: 0, startMoney: 0, layers: 1, size: 0, startBuildings: [] };
+    var out = { money: 0, power: 0, build: 0, cores: 0, startMoney: 0, layers: 1, size: 0,
+                startBuildings: [], dims: 1 };
     for (var i = 0; i < D.REBIRTH_MILESTONES.length; i++) {
       var m = D.REBIRTH_MILESTONES[i];
       if (rebirths < m.at) continue;
@@ -93,6 +95,7 @@
       if (m.layers) out.layers = Math.max(out.layers, m.layers);
       if (m.size) out.size = Math.max(out.size, m.size);
       if (m.startBuildings) out.startBuildings = m.startBuildings;
+      if (m.dim) out.dims = Math.max(out.dims, m.dim + 1);
     }
     return out;
   };
@@ -102,6 +105,71 @@
       if (rebirths < D.REBIRTH_MILESTONES[i].at) return D.REBIRTH_MILESTONES[i];
     }
     return null;
+  };
+
+  /* ---------------------------------------------------------
+     Dimensions
+     --------------------------------------------------------- */
+  S.dim = function () {
+    return D.DIMENSIONS[U.clamp(game.dim | 0, 0, D.DIMENSIONS.length - 1)];
+  };
+
+  S.dimUnlocked = function (index) {
+    var d = D.DIMENSIONS[index];
+    return !!d && game.rebirths >= d.rebirths;
+  };
+
+  S.dimsUnlocked = function () {
+    var n = 0;
+    for (var i = 0; i < D.DIMENSIONS.length; i++) if (S.dimUnlocked(i)) n++;
+    return n;
+  };
+
+  /* the global layer table merged with this dimension's look and naming */
+  S.layer = function (index) {
+    var i = U.clamp(index | 0, 0, D.LAYERS.length - 1);
+    var base = D.LAYERS[i], dim = S.dim();
+    var f = dim.floors[i] || base.floors;
+    return {
+      index: i,
+      name: dim.layerNames[i] || base.name,
+      cost: base.cost,
+      hpMult: base.hpMult,
+      valMult: base.valMult,
+      floor: f[0], floor2: f[1], wall: f[2], light: f[3]
+    };
+  };
+
+  /* the ore table for wherever we are standing */
+  S.dimOres = function () {
+    return D.ORES_BY_DIM[S.dim().index] || D.ORES_BY_DIM[0];
+  };
+
+  S.travel = function (index) {
+    if (!S.dimUnlocked(index)) return false;
+    if (game.layer !== 0) return false;
+    game.dim = index;
+    game.layer = 0;
+    if (!game.stats.visited) game.stats.visited = { sky: 1 };
+    game.stats.visited[D.DIMENSIONS[index].id] = 1;
+    return true;
+  };
+
+  /* what a dimension is worth relative to home, for the travel screen */
+  S.dimAvgValue = function (index) {
+    var list = D.ORES_BY_DIM[index] || [];
+    if (!list.length) return 0;
+    var total = 0;
+    for (var i = 0; i < list.length; i++) total += list[i].value;
+    return total / list.length;
+  };
+
+  S.dimAvgHp = function (index) {
+    var list = D.ORES_BY_DIM[index] || [];
+    if (!list.length) return 0;
+    var total = 0;
+    for (var i = 0; i < list.length; i++) total += list[i].hp;
+    return total / list.length;
   };
 
   S.get = function () { return game; };
@@ -144,6 +212,7 @@
     var ms = S.milestoneBonuses();
     var rb = S.rebirthBonuses(g.rebirths);
 
+    var dim = S.dim();
     var pickPow = S.gearTier('pick').stat;
     var levelBonus = 1 + (g.level - 1) * 0.02;
     var perkPow = 1 + perk('muscle') * 0.20;
@@ -154,13 +223,13 @@
       power: pickPow * levelBonus * perkPow * corePow * crewPow
         * (1 + (ms.power || 0)) * (1 + rb.power),
       capacity: Math.floor(S.gearTier('bag').stat * (1 + perk('pockets') * 0.40)),
-      speed: S.gearTier('boots').stat * (1 + perk('swift') * 0.08) * (1 + (g.level - 1) * 0.004),
-      swing: S.gearTier('gloves').stat * (1 + perk('hands') * 0.10) * (1 + (ms.swing || 0)),
+      speed: S.gearTier('boots').stat * (1 + perk('swift') * 0.08) * (1 + (g.level - 1) * 0.004) * dim.speed,
+      swing: S.gearTier('gloves').stat * (1 + perk('hands') * 0.10) * (1 + (ms.swing || 0)) * dim.swing,
       luck: S.gearTier('lamp').stat + perk('lucky') * 0.06
-        + buildingSum('luck') + (ms.luck || 0),
-      doubleChance: U.clamp(perk('magnet') * 0.08 + buildingSum('doubleOre'), 0, 0.95),
-      respawn: Math.max(0.25, D.RESPAWN / (1 + perk('scan') * 0.12 + buildingSum('respawn'))),
-      buildMult: (1 + perk('foreman') * 0.20 + (ms.buildMult || 0)) * (1 + rb.build),
+        + buildingSum('luck') + (ms.luck || 0) + dim.luck,
+      doubleChance: U.clamp(perk('magnet') * 0.08 + buildingSum('doubleOre') + dim.double, 0, 0.95),
+      respawn: Math.max(0.25, D.RESPAWN * dim.respawn / (1 + perk('scan') * 0.12 + buildingSum('respawn'))),
+      buildMult: (1 + perk('foreman') * 0.20 + (ms.buildMult || 0)) * (1 + rb.build) * dim.build,
       offlineRate: U.clamp(0.25 + perk('offline') * 0.08, 0, 1),
       light: S.gearTier('lamp').stat,
       contractBonus: 1 + (ms.contract || 0)
@@ -281,7 +350,7 @@
   S.oreValue = function (oreId, layer) {
     var ore = D.ORE_BY_ID[oreId];
     if (!ore) return 0;
-    var lm = D.LAYERS[U.clamp(layer === undefined ? game.deepest : layer, 0, 5)].valMult;
+    var lm = S.layer(layer === undefined ? game.deepest : layer).valMult;
     return ore.value * lm * S.derive().valueMult;
   };
 
@@ -523,6 +592,11 @@
       if (!st.store) st.store = {};
       if (!st.keep) st.keep = {};
       if (typeof st.quest !== 'number') st.quest = 0;
+      if (!st.stats.visited) st.stats.visited = { sky: 1 };
+      if (typeof st.dim !== 'number') st.dim = 0;
+      st.dim = U.clamp(st.dim, 0, D.DIMENSIONS.length - 1);
+      /* never strand a save in a dimension its rebirth count no longer allows */
+      if (st.rebirths < D.DIMENSIONS[st.dim].rebirths) st.dim = 0;
       if (!Array.isArray(st.questLog)) st.questLog = [];
       st.size = U.clamp(st.size | 0, D.START_SIZE, D.MAX_SIZE);
       st.layersUnlocked = U.clamp(st.layersUnlocked | 0, 1, D.LAYERS.length);

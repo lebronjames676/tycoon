@@ -121,6 +121,11 @@ canvas#world{
 }
 #actionbar button:hover,.btn:hover{background:#31414f}
 .toggle.on{background:var(--teal-dk);border-color:var(--teal);color:#fff}
+#btnSellAll{background:#2f2a12;border-color:var(--gold-dk);color:var(--gold)}
+#btnSellAll:hover{background:#463c1a}
+#btnSellAll:disabled{background:#232e38;border-color:var(--line);color:#5e7285;cursor:default}
+#btnSellAll.ready{background:var(--gold);border-color:#ffe29a;color:#3a2a06;
+  box-shadow:0 0 10px rgba(245,192,78,.45)}
 
 /* ---------- panels ---------- */
 #overlay{

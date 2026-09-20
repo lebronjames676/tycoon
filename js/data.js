@@ -16,6 +16,7 @@
   D.SHAFT = { x: D.CENTER + 1, y: D.CENTER };       /* mineshaft / ladder  */
   D.SELL = { x: D.CENTER - 2, y: D.CENTER };        /* market drop-off pad */
   D.SPAWN = { x: D.CENTER, y: D.CENTER + 1 };
+  D.GATE = { x: D.CENTER, y: D.CENTER - 2 };      /* dimension warp gate */
   D.NODE_DENSITY = 0.19;       /* nodes per unlocked tile                 */
   D.RESPAWN = 1.7;             /* seconds before a broken node comes back */
   D.SWING = 0.38;              /* seconds per pickaxe swing               */
@@ -42,8 +43,77 @@
     { id: 'voidstone', name: 'Voidstone',  color: '#2b2140', gem: '#7b5fd6', value: 15000, hp: 3800, w: [0, 0, 0, 0, 2, 12] },
     { id: 'starcore',  name: 'Star Core',  color: '#ffd76a', gem: '#fffbe0', value: 42000, hp: 6500, w: [0, 0, 0, 0, 0, 4] }
   ];
+  D.ORES.forEach(function (o) { o.dim = 0; });
+
+  /* Ores for the outer dimensions.  Spawn weights are generated: ore i of n
+     peaks at the layer i/(n-1) of the way down, with spill either side. */
+  function dimOres(dim, rows) {
+    var n = rows.length;
+    rows.forEach(function (r, i) {
+      var peak = n > 1 ? i * 5 / (n - 1) : 0;
+      var w = [];
+      for (var L = 0; L < 6; L++) w.push(Math.max(0, Math.round(45 - Math.abs(L - peak) * 16)));
+      D.ORES.push({
+        id: r[0], name: r[1], color: r[2], gem: r[3], value: r[4], hp: r[5], w: w, dim: dim
+      });
+    });
+  }
+
+  dimOres(1, [
+    ['regolith',  'Regolith',      '#8e8e92', '#c4c4c8', 5.0e4, 9000],
+    ['iceshard',  'Ice Shard',     '#a8d8e8', '#e4f6ff', 1.2e5, 14000],
+    ['helium3',   'Helium-3',      '#7fd4c0', '#c8fff0', 3.0e5, 22000],
+    ['lunarite',  'Lunarite',      '#d8d4e8', '#ffffff', 7.0e5, 34000],
+    ['selenite',  'Selenite',      '#e8dfa8', '#fffbd8', 1.6e6, 52000],
+    ['mooncore',  'Moon Core',     '#6c5fa8', '#b9a8ff', 4.0e6, 80000]
+  ]);
+
+  dimOres(2, [
+    ['chondrite', 'Chondrite',     '#6b5a4a', '#9c8672', 1.5e7, 1.2e5],
+    ['nickeliron','Nickel-Iron',   '#9aa0a8', '#d4dae2', 3.5e7, 1.8e5],
+    ['platinum',  'Platinum',      '#dfe6ea', '#ffffff', 8.0e7, 2.7e5],
+    ['iridium',   'Iridium',       '#c0d0d8', '#f0fbff', 1.8e8, 4.0e5],
+    ['palladium', 'Palladium',     '#c8b8d8', '#f2e8ff', 4.0e8, 6.0e5],
+    ['impactdia', 'Impact Diamond','#9ff0ff', '#ffffff', 9.0e8, 9.0e5]
+  ]);
+
+  dimOres(3, [
+    ['slag',      'Solar Slag',    '#7a3a22', '#b8613a', 4.0e9, 1.3e6],
+    ['solarglass','Solar Glass',   '#e0a040', '#ffd98a', 9.0e9, 2.0e6],
+    ['plasmaore', 'Plasma Ore',    '#ff7a3a', '#ffc08a', 2.0e10, 3.0e6],
+    ['coronium',  'Coronium',      '#ffd040', '#fff4b0', 4.5e10, 4.5e6],
+    ['fusioncore','Fusion Core',   '#ff5a40', '#ffb090', 1.0e11, 6.7e6],
+    ['helion',    'Helion Crystal','#fff0a0', '#ffffff', 2.2e11, 1.0e7]
+  ]);
+
+  dimOres(4, [
+    ['stardust',  'Stardust',      '#8a7fc8', '#cfc4ff', 1.0e12, 1.5e7],
+    ['ioncrystal','Ion Crystal',   '#5fc8e8', '#b8f2ff', 2.2e12, 2.2e7],
+    ['nebulite',  'Nebulite',      '#c85fc8', '#ffb8ff', 5.0e12, 3.3e7],
+    ['pulsar',    'Pulsar Shard',  '#f0e070', '#fffbc0', 1.1e13, 5.0e7],
+    ['darkmatter','Dark Matter',   '#2a2340', '#6f5fb0', 2.4e13, 7.4e7],
+    ['quasar',    'Quasar Heart',  '#ff6fa8', '#ffc8e0', 5.5e13, 1.1e8]
+  ]);
+
+  dimOres(5, [
+    ['eventshard','Event Shard',   '#1e1a2e', '#5a4f8a', 2.5e14, 1.6e8],
+    ['gravitite', 'Gravitite',     '#3a3550', '#7f76b8', 5.5e14, 2.4e8],
+    ['chronite',  'Chronite',      '#4fd8c8', '#c0fff4', 1.2e15, 3.6e8],
+    ['entropy',   'Entropy Crystal','#b84fd8', '#ecb8ff', 2.7e15, 5.4e8],
+    ['voidprism', 'Void Prism',    '#ffffff', '#ffffff', 6.0e15, 8.0e8],
+    ['singcore',  'Singularity Core','#0b0b12', '#8affff', 1.3e16, 1.2e9]
+  ]);
+
   D.ORE_BY_ID = {};
   D.ORES.forEach(function (o, i) { o.index = i; D.ORE_BY_ID[o.id] = o; });
+  D.ORES_BY_DIM = [];
+  D.ORES.forEach(function (o) {
+    (D.ORES_BY_DIM[o.dim] = D.ORES_BY_DIM[o.dim] || []).push(o);
+  });
+  /* rank inside its own dimension, used for rare-ore luck weighting */
+  D.ORES_BY_DIM.forEach(function (list) {
+    list.forEach(function (o, i) { o.rank = i; });
+  });
 
   /* ---------------------------------------------------------
      Depth layers
@@ -56,6 +126,120 @@
     { name: 'Magma Core',    cost: 1.8e7,  hpMult: 4.0, valMult: 2.10, floor: '#6d3230', floor2: '#5c2a28', wall: '#3d1b1a', light: 0.58 },
     { name: 'The Void',      cost: 6.0e8,  hpMult: 6.5, valMult: 2.80, floor: '#241d3a', floor2: '#1d1730', wall: '#120e1f', light: 0.44 }
   ];
+
+  /* ---------------------------------------------------------
+     Dimensions - the shard drifts to richer regions of space.
+     Each one swaps the ore table, the palette and how it plays.
+     --------------------------------------------------------- */
+  D.DIMENSIONS = [
+    {
+      id: 'sky', name: 'Sky Shard', rebirths: 0,
+      tagline: 'Home. Green grass, warm air, ordinary rock.',
+      twist: 'The baseline everything else is measured against.',
+      speed: 1, swing: 1, respawn: 1, double: 0, luck: 0, build: 1,
+      sky: ['#a9e6f2', '#c4eef4', '#dff6f7'], clouds: true,
+      body: { grass: '#3f9c8a', dirt: '#d79a6e', stone: '#9299a1' },
+      layerNames: ['Surface', 'Shallow Caves', 'Deep Caves', 'Crystal Depths', 'Magma Core', 'The Void'],
+      floors: [
+        ['#57c3ad', '#4bb39e', '#d79a6e', 1.00],
+        ['#8a6a4e', '#7a5c43', '#5e4632', 0.78],
+        ['#6b7079', '#5d626a', '#42464d', 0.62],
+        ['#4a5a78', '#3f4d67', '#2c3852', 0.52],
+        ['#6d3230', '#5c2a28', '#3d1b1a', 0.58],
+        ['#241d3a', '#1d1730', '#120e1f', 0.44]
+      ]
+    },
+    {
+      id: 'moon', name: 'The Moon', rebirths: 5,
+      tagline: 'Grey dust, black sky, the Earth hanging overhead.',
+      twist: 'Low gravity: you move 45% faster. Nothing weathers here, so veins are 30% slower to reappear.',
+      speed: 1.45, swing: 1, respawn: 1.30, double: 0, luck: 0, build: 1,
+      sky: ['#05060d', '#0a0c16', '#12141f'], space: true,
+      planet: { color: '#3f7fd8', accent: '#58c8b6', r: 46, x: 0.74, y: 0.22 },
+      body: { grass: '#b9b9bd', dirt: '#8a8a90', stone: '#5e5e66' },
+      layerNames: ['Mare Surface', 'Dust Hollows', 'Regolith Deep', 'Crater Roots', 'Lava Tubes', 'The Dark Side'],
+      floors: [
+        ['#b4b4b9', '#a6a6ac', '#8a8a90', 0.86],
+        ['#8e8e94', '#828289', '#65656c', 0.66],
+        ['#77777f', '#6b6b73', '#51515a', 0.56],
+        ['#5f6472', '#555a67', '#3e4350', 0.48],
+        ['#5c4038', '#503730', '#3a2620', 0.54],
+        ['#1c1c28', '#16161f', '#0d0d14', 0.38]
+      ]
+    },
+    {
+      id: 'belt', name: 'The Asteroid Belt', rebirths: 15,
+      tagline: 'A shoal of tumbling rock between the planets.',
+      twist: 'Ore sits in dense pockets: +25% chance every node drops double.',
+      speed: 1.15, swing: 1, respawn: 0.9, double: 0.25, luck: 0.15, build: 1,
+      sky: ['#0a0710', '#120c1a', '#1a1222'], space: true,
+      body: { grass: '#8c6f52', dirt: '#6e563f', stone: '#4a4038' },
+      layerNames: ['Outer Crust', 'Fracture Zone', 'Metal Seams', 'Iron Heart', 'Shatter Line', 'The Kuiper Dark'],
+      floors: [
+        ['#8c7156', '#7e644c', '#5c4a38', 0.82],
+        ['#756049', '#695640', '#4c3e2f', 0.64],
+        ['#6b6a68', '#5f5e5c', '#454442', 0.58],
+        ['#6e6256', '#61564c', '#453d36', 0.52],
+        ['#4c4550', '#433c47', '#2e2933', 0.46],
+        ['#17141d', '#121019', '#0a0810', 0.36]
+      ]
+    },
+    {
+      id: 'forge', name: 'The Solar Forge', rebirths: 30,
+      tagline: 'Close enough to the star that the rock runs like honey.',
+      twist: 'Blistering heat: machines run 2x harder, but your own swing is 20% slower.',
+      speed: 0.95, swing: 0.80, respawn: 0.7, double: 0, luck: 0, build: 2,
+      sky: ['#7a1f08', '#c24a12', '#f0912c'], glow: '#ffb347',
+      planet: { color: '#ffd23a', accent: '#ff8c1a', r: 86, x: 0.5, y: 0.10 },
+      body: { grass: '#c2481f', dirt: '#8f3416', stone: '#54200f' },
+      layerNames: ['Scorched Shelf', 'Ember Flats', 'Slag Rivers', 'Plasma Vents', 'The Chromosphere', 'Core Fire'],
+      floors: [
+        ['#c2542a', '#b04a24', '#7a3115', 0.94],
+        ['#a8451f', '#963c1b', '#6a2810', 0.80],
+        ['#8f3a1a', '#7f3316', '#58200d', 0.72],
+        ['#a2401c', '#8e3718', '#62240f', 0.76],
+        ['#d06a20', '#b85a1a', '#7d3a10', 0.88],
+        ['#5e1c0c', '#4c160a', '#2e0d05', 0.60]
+      ]
+    },
+    {
+      id: 'nebula', name: 'Nebula Reach', rebirths: 60,
+      tagline: 'Drifting through a cloud that has not finished becoming stars.',
+      twist: 'Strange matter everywhere: rare ore is twice as likely, but it is very dark out here.',
+      speed: 1.1, swing: 1, respawn: 0.8, double: 0.1, luck: 1.0, build: 1.4,
+      sky: ['#180a30', '#2a1050', '#3d1a5e'], space: true, glow: '#b06fe8',
+      body: { grass: '#7a4fb8', dirt: '#553487', stone: '#33205c' },
+      layerNames: ['Dust Veil', 'Ion Drift', 'Nebula Heart', 'Pulsar Shelf', 'Dark Current', 'The Quasar'],
+      floors: [
+        ['#7a54b4', '#6c489f', '#4c3078', 0.72],
+        ['#5f4a9c', '#543f8c', '#3b2a68', 0.58],
+        ['#8a4aa8', '#7a4096', '#552c6c', 0.60],
+        ['#4a5aa8', '#404f96', '#2c386c', 0.52],
+        ['#2c2450', '#241d44', '#160f2c', 0.38],
+        ['#4a2c60', '#3d2450', '#261434', 0.44]
+      ]
+    },
+    {
+      id: 'sing', name: 'The Singularity', rebirths: 100,
+      tagline: 'The last place. Light bends around the edges of the shard.',
+      twist: 'Time runs strangely: machines produce 3x, your own hands work at half speed.',
+      speed: 1, swing: 0.5, respawn: 0.5, double: 0.2, luck: 0.5, build: 3,
+      sky: ['#000000', '#05050a', '#0a0a12'], space: true, glow: '#8affff',
+      planet: { color: '#000000', accent: '#8affff', r: 70, x: 0.5, y: 0.34, ring: true },
+      body: { grass: '#2a2a3a', dirt: '#1c1c28', stone: '#101018' },
+      layerNames: ['Event Horizon', 'Tidal Shelf', 'Chrono Fold', 'Entropy Well', 'The Ergosphere', 'Zero Point'],
+      floors: [
+        ['#2e2e42', '#282838', '#1a1a26', 0.66],
+        ['#262636', '#20202e', '#141420', 0.56],
+        ['#24384a', '#1e2f40', '#131e2a', 0.58],
+        ['#3a2448', '#301e3c', '#1e1228', 0.50],
+        ['#1a1a28', '#151520', '#0c0c14', 0.42],
+        ['#0a0a12', '#07070c', '#030306', 0.34]
+      ]
+    }
+  ];
+  D.DIM_BY_ID = {};
+  D.DIMENSIONS.forEach(function (d, i) { d.index = i; D.DIM_BY_ID[d.id] = d; });
 
   /* ---------------------------------------------------------
      Equipment chains.  Index 0 of each chain is free & owned.
@@ -285,6 +469,8 @@
     { id: 'reb100',   name: 'Eternal Engine',   desc: 'Reach 100 rebirths.',                   cores: 250, money: 0,   test: function (s) { return s.rebirths >= 100; } },
     { id: 'power',    name: 'Grid Operator',    desc: 'Supply 1,000 power.',                   cores: 5, money: 5e6,   test: function (s) { var p = 0; s.buildings.forEach(function (b) { var d = D.BUILD_BY_ID[b.id]; if (d && d.power > 0) p += d.power; }); return p >= 1000; } },
     { id: 'hoard',    name: 'Full Sheds',       desc: 'Fill 10,000 ore of warehouse space.',   cores: 6, money: 1e7,   test: function (s) { var n = 0; for (var k in (s.store || {})) n += s.store[k]; return n >= 10000; } },
+    { id: 'offworld', name: 'Off World',         desc: 'Set foot in a second dimension.',       cores: 5, money: 1e6,  test: function (s) { return Object.keys(s.stats.visited || {}).length >= 2; } },
+    { id: 'tour',     name: 'Grand Tour',        desc: 'Visit every dimension there is.',       cores: 150, money: 1e11, test: function (s) { return Object.keys(s.stats.visited || {}).length >= D.DIMENSIONS.length; } },
     { id: 'star',     name: 'Stardust',         desc: 'Mine a Star Core.',                     cores: 5, money: 1e6,   test: function (s) { return (s.stats.mined.starcore || 0) >= 1; } }
   ];
 
@@ -349,22 +535,32 @@
       goal: 5e6,   prog: function (s) { return s.lifeEarned; },          money: 6e6, cores: 3 },
     { name: 'Start Again',       desc: 'Rebirth for the first time.',
       goal: 1,     prog: function (s) { return s.rebirths; },            cores: 6 },
+    { name: 'Moonshot',          desc: 'Rebirth 5 times, then fly the shard to the Moon.',
+      goal: 1,     prog: function (s) { return (s.stats.visited || {}).moon ? 1 : 0; }, cores: 12 },
     { name: 'Second Wind',       desc: 'Earn $20,000,000 in a life after your first rebirth.',
       goal: 2e7,   prog: function (s) { return s.rebirths >= 1 ? s.lifeEarned : 0; }, cores: 10 },
     { name: 'Into the Magma',    desc: 'Unlock the Magma Core.',
       goal: 5,     prog: function (s) { return s.layersUnlocked; },      cores: 14 },
     { name: 'Industrialist',     desc: 'Have 40 buildings standing at once.',
       goal: 40,    prog: function (s) { return s.buildings.length; },    cores: 20 },
+    { name: 'Belt Runner',       desc: 'Reach the Asteroid Belt at 15 rebirths.',
+      goal: 1,     prog: function (s) { return (s.stats.visited || {}).belt ? 1 : 0; }, cores: 35 },
     { name: 'Continental',       desc: 'Grow the island to 14 tiles across.',
       goal: 14,    prog: function (s) { return s.size; },                cores: 28 },
     { name: 'Boring Company',    desc: 'Build a tunnel borer.',
       goal: 1,     prog: function (s) { return ownsOf(s, 'borer'); },    cores: 40 },
     { name: 'The Void Opens',    desc: 'Unlock The Void, the deepest layer there is.',
       goal: 6,     prog: function (s) { return s.layersUnlocked; },      cores: 60 },
+    { name: 'Sun Chaser',        desc: 'Reach the Solar Forge at 30 rebirths.',
+      goal: 1,     prog: function (s) { return (s.stats.visited || {}).forge ? 1 : 0; }, cores: 90 },
     { name: 'Star Forged',       desc: 'Craft the Starforged Pickaxe.',
       goal: 11,    prog: function (s) { return s.gear.pick; },           cores: 120 },
+    { name: 'Deep Field',        desc: 'Reach Nebula Reach at 60 rebirths.',
+      goal: 1,     prog: function (s) { return (s.stats.visited || {}).nebula ? 1 : 0; }, cores: 260 },
     { name: 'Eternal Return',    desc: 'Rebirth 10 times.',
       goal: 10,    prog: function (s) { return s.rebirths; },            cores: 200 },
+    { name: 'Event Horizon',     desc: 'Reach The Singularity at 100 rebirths.',
+      goal: 1,     prog: function (s) { return (s.stats.visited || {}).sing ? 1 : 0; }, cores: 1000 },
     { name: 'Ascendant',         desc: 'Earn one trillion dollars across all lives.',
       goal: 1e12,  prog: function (s) { return s.stats.totalEarned; },   cores: 500 }
   ];
@@ -419,16 +615,21 @@
     { at: 1,   name: 'First Return',      desc: '+10% money from every source.',      money: 0.10 },
     { at: 2,   name: 'Muscle Memory',     desc: '+15% mining power.',                 power: 0.15 },
     { at: 3,   name: 'Seed Capital',      desc: 'Start every life with $25,000.',     startMoney: 25000 },
-    { at: 5,   name: 'Known Tunnels',     desc: 'Start with the Shallow Caves open.', layers: 2 },
+    { at: 4,   name: 'Known Tunnels',     desc: 'Start with the Shallow Caves open.', layers: 2 },
+    { at: 5,   name: 'The Moon',          desc: 'Unlock a new dimension: fly the shard to the Moon.', dim: 1 },
     { at: 8,   name: 'Standing Crew',     desc: '+30% output from every building.',   build: 0.30 },
     { at: 12,  name: 'Wider Foundations', desc: 'The island starts 2 tiles wider.',   size: 2 },
+    { at: 15,  name: 'The Asteroid Belt', desc: 'Unlock a new dimension: the belt between the planets.', dim: 2 },
     { at: 18,  name: 'Deep Roots',        desc: 'Start with the Deep Caves open.',    layers: 3 },
     { at: 25,  name: 'Core Resonance',    desc: '+50% prestige cores on rebirth.',    cores: 0.50 },
+    { at: 30,  name: 'The Solar Forge',   desc: 'Unlock a new dimension: the molten rock near the star.', dim: 3 },
     { at: 35,  name: 'Prefab Camp',       desc: 'Start with a warehouse, a hut and a generator already built.',
       startBuildings: ['store', 'hut', 'gen'] },
     { at: 50,  name: 'Crystal Charter',   desc: 'Start with the Crystal Depths open.', layers: 4 },
+    { at: 60,  name: 'Nebula Reach',      desc: 'Unlock a new dimension: a cloud still becoming stars.', dim: 4 },
     { at: 75,  name: 'Titan',             desc: '+150% mining power.',                power: 1.50 },
-    { at: 100, name: 'Eternal Engine',    desc: 'Double every prestige core you earn.', cores: 1.00 }
+    { at: 100, name: 'The Singularity',   desc: 'Unlock the final dimension, and double every core you earn.',
+      dim: 5, cores: 1.00 }
   ];
 
   /* ---------------------------------------------------------
@@ -478,7 +679,9 @@
     'The lantern raises the chance that rare ore spawns anywhere you dig.',
     'Press E on the mineshaft to ride down, Q to come back up.',
     'Guild contracts pay roughly triple the market rate - check the Jobs board.',
-    'A warehouse keeps crafting ore safe from auto-selling. Walk past it to drop off.'
+    'A warehouse keeps crafting ore safe from auto-selling. Walk past it to drop off.',
+    'Press F on the market pad to sell your whole bag and warehouses in one go.',
+    'Rebirth milestones unlock whole new dimensions - the Moon is waiting at 5.'
   ];
 
   root.D = D;

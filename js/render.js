@@ -30,6 +30,7 @@
     ctx = canvas.getContext('2d', { alpha: false });
     R.resize();
     makeClouds();
+    makeStars();
   };
 
   R.resize = function () {
@@ -49,6 +50,20 @@
     return zoom;
   };
   R.getZoom = function () { return zoom; };
+
+  var stars = [];
+  function makeStars() {
+    stars = [];
+    for (var i = 0; i < 150; i++) {
+      stars.push({
+        x: Math.random() * 3000 - 500,
+        y: Math.random() * 1600 - 500,
+        p: U.rand(0.04, 0.3),
+        s: Math.random() < 0.15 ? 2 : 1,
+        tw: Math.random() * 6.28
+      });
+    }
+  }
 
   function makeClouds() {
     clouds = [];
@@ -87,6 +102,14 @@
 
   R.setHover = function (tile) { hoverTile = tile; };
 
+  /* debug helper: what is currently floating on screen */
+  R.debugFloats = function () {
+    return floats.map(function (f) {
+      return { text: f.text, x: +f.x.toFixed(2), y: +f.y.toFixed(2),
+               rise: Math.round(f.rise), life: +f.life.toFixed(2), scale: f.scale };
+    });
+  };
+
   /* ---------------------------------------------------------
      Effects
      --------------------------------------------------------- */
@@ -96,10 +119,11 @@
     var lift = 0;
     for (var i = floats.length - 1; i >= 0 && i >= floats.length - 6; i--) {
       var f = floats[i];
-      if (f.life > 0.75 && Math.abs(f.x - wx) < 0.9 && Math.abs(f.y - wy) < 0.9) {
+      if (f.life > 0.30 && Math.abs(f.x - wx) < 0.9 && Math.abs(f.y - wy) < 0.9) {
         lift = Math.max(lift, f.rise + 9);
       }
     }
+    lift = Math.min(lift, 36);          /* never build a tower of numbers */
     floats.push({
       x: wx, y: wy, text: String(text), color: color || '#ffffff',
       scale: scale || 1, life: 1.15, rise: lift
@@ -186,17 +210,21 @@
     var left = { x: ox + isoX(b.x0, b.y1 + 1), y: oy + isoY(b.x0, b.y1 + 1) };
 
     /* soft shadow cast into the sky below the rock */
-    ctx.fillStyle = 'rgba(120,180,195,.18)';
+    ctx.fillStyle = S.dim().space ? 'rgba(255,255,255,.05)' : 'rgba(120,180,195,.18)';
     ctx.fillRect(Math.round(left.x), Math.round(bottom.y + BODY + 26),
                  Math.round(right.x - left.x), 6);
 
+    var body = S.dim().body;
     face(left.x, left.y, bottom.x, bottom.y, BODY, sd.jagA,
-         { grass: '#3f9c8a', dirt: '#d79a6e', stone: '#9299a1' });
+         { grass: body.grass, dirt: body.dirt, stone: body.stone });
     face(bottom.x, bottom.y, right.x, right.y, BODY, sd.jagB,
-         { grass: '#348275', dirt: '#b98059', stone: '#787f87' });
+         { grass: U.shade(body.grass, -18), dirt: U.shade(body.dirt, -26), stone: U.shade(body.stone, -22) });
 
-    /* buried ore glinting in the rock face */
-    var palette = ['#b3323f', '#e6edf2', '#b3323f', '#8f979e', '#e6edf2'];
+    /* buried ore glinting in the rock face, drawn from this dimension's seams */
+    var seam = S.dimOres();
+    var palette = [];
+    for (var pi = 0; pi < seam.length; pi++) palette.push(seam[pi].gem);
+    if (!palette.length) palette = ['#b3323f', '#e6edf2'];
     for (var i = 0; i < sd.gems.length; i++) {
       var gm = sd.gems[i];
       var A = gm.face === 0 ? left : bottom, B = gm.face === 0 ? bottom : right;
@@ -212,7 +240,7 @@
 
   /* cave: floating slab plus the two far walls of the chamber */
   function drawCaveShell(ox, oy, layer) {
-    var b = W.bounds(), L = D.LAYERS[layer], sd = sideData();
+    var b = W.bounds(), L = S.layer(layer), sd = sideData();
     var top = { x: ox + isoX(b.x0, b.y0), y: oy + isoY(b.x0, b.y0) };
     var right = { x: ox + isoX(b.x1 + 1, b.y0), y: oy + isoY(b.x1 + 1, b.y0) };
     var bottom = { x: ox + isoX(b.x1 + 1, b.y1 + 1), y: oy + isoY(b.x1 + 1, b.y1 + 1) };
@@ -241,7 +269,7 @@
      Tile floor
      --------------------------------------------------------- */
   function drawTiles(ox, oy, layer) {
-    var b = W.bounds(), L = D.LAYERS[layer];
+    var b = W.bounds(), L = S.layer(layer);
     var hx = TW / 2, hy = TH / 2;
     for (var y = b.y0; y <= b.y1; y++) {
       for (var x = b.x0; x <= b.x1; x++) {
@@ -290,6 +318,25 @@
       ctx.fillRect(Math.round(mx + 5), Math.round(my - 4), 3, 9);
       ctx.fillStyle = '#e05b6a'; ctx.fillRect(Math.round(mx - 10), Math.round(my - 8), 20, 4);
       ctx.fillStyle = '#f0f0f0'; ctx.fillRect(Math.round(mx - 10), Math.round(my - 8), 20, 2);
+    }
+
+    /* warp gate, once another dimension is reachable */
+    if (layer === 0 && S.dimsUnlocked() > 1) {
+      var gt = D.GATE;
+      var gx = ox + isoX(gt.x, gt.y), gy = oy + isoY(gt.x, gt.y);
+      var dimc = S.dim().glow || '#a678e8';
+      poly([[gx, gy], [gx + TW / 2, gy + TH / 2], [gx, gy + TH], [gx - TW / 2, gy + TH / 2]],
+           'rgba(166,120,232,' + (0.3 + pulse * 0.35) + ')');
+      ctx.fillStyle = '#3d2f5c';
+      ctx.fillRect(Math.round(gx - 7), Math.round(gy - 2), 2, 10);
+      ctx.fillRect(Math.round(gx + 5), Math.round(gy - 2), 2, 10);
+      ctx.fillRect(Math.round(gx - 7), Math.round(gy - 4), 14, 2);
+      ctx.fillStyle = dimc;
+      ctx.globalAlpha = 0.35 + pulse * 0.4;
+      ctx.fillRect(Math.round(gx - 5), Math.round(gy - 2), 10, 10);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#e0d0ff';
+      ctx.fillRect(Math.round(gx - 1), Math.round(gy + 1 - Math.round(pulse * 4)), 2, 2);
     }
 
     var s = D.SHAFT;
@@ -399,7 +446,8 @@
       P.text(ctx, f.text,
              Math.round(ox + isoX(f.x, f.y)),
              Math.round(oy + isoY(f.x, f.y) - 22 - f.rise),
-             { align: 'center', scale: f.scale, color: f.color, outline: '#101418' });
+             { align: 'center', scale: f.scale, color: f.color,
+               outline: f.scale > 1 ? '#101418' : null, plate: f.scale === 1 });
     }
     ctx.globalAlpha = 1;
   }
@@ -407,27 +455,85 @@
   /* ---------------------------------------------------------
      Sky
      --------------------------------------------------------- */
-  function drawSky(dt) {
+  function drawSky(dt, t) {
+    var dim = S.dim();
     var grad = ctx.createLinearGradient(0, 0, 0, bh);
-    grad.addColorStop(0, '#a9e6f2');
-    grad.addColorStop(0.55, '#c4eef4');
-    grad.addColorStop(1, '#dff6f7');
+    grad.addColorStop(0, dim.sky[0]);
+    grad.addColorStop(0.55, dim.sky[1]);
+    grad.addColorStop(1, dim.sky[2]);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, bw, bh);
 
-    for (var i = 0; i < clouds.length; i++) {
-      var c = clouds[i];
-      c.x += c.s * dt;
-      var px = c.x - cam.x * c.p, py = c.y - cam.y * c.p;
-      var span = bw + 800;
-      px = ((px % span) + span) % span - 400;
-      if (py < -200 || py > bh + 200) continue;
-      P.cloud(ctx, px, py, c.w, c.h, 0.55 + c.p);
+    var i, px, py, span;
+
+    /* starfield for anywhere off-world */
+    if (dim.space) {
+      for (i = 0; i < stars.length; i++) {
+        var st = stars[i];
+        px = st.x - cam.x * st.p;
+        py = st.y - cam.y * st.p;
+        span = bw + 600;
+        px = ((px % span) + span) % span - 300;
+        var vspan = bh + 600;
+        py = ((py % vspan) + vspan) % vspan - 300;
+        var tw = 0.55 + 0.45 * Math.sin(t * 1.5 + st.tw);
+        ctx.fillStyle = 'rgba(255,255,255,' + tw.toFixed(2) + ')';
+        ctx.fillRect(Math.round(px), Math.round(py), st.s, st.s);
+      }
+    }
+
+    /* a body hanging in the distance */
+    if (dim.planet) {
+      var pl = dim.planet;
+      var cxp = Math.round(bw * pl.x - cam.x * 0.06);
+      var cyp = Math.round(bh * pl.y - cam.y * 0.06);
+      if (pl.ring) {
+        ctx.fillStyle = pl.accent;
+        ctx.globalAlpha = 0.25;
+        ctx.beginPath(); ctx.arc(cxp, cyp, pl.r + 10, 0, 6.2832); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      ctx.fillStyle = pl.color;
+      ctx.beginPath(); ctx.arc(cxp, cyp, pl.r, 0, 6.2832); ctx.fill();
+      ctx.fillStyle = pl.accent;
+      ctx.globalAlpha = pl.ring ? 0.9 : 0.55;
+      /* a few chunky surface bands so it does not read as a flat disc */
+      for (i = 0; i < 4; i++) {
+        var by = cyp - pl.r + Math.round(pl.r * (0.45 + i * 0.32));
+        var half = Math.round(Math.sqrt(Math.max(0, pl.r * pl.r - (by - cyp) * (by - cyp))));
+        var wBand = Math.round(half * 2 * (i % 2 ? 0.55 : 0.85));
+        ctx.fillRect(cxp - Math.round(wBand / 2), by, wBand, 3);
+      }
+      ctx.globalAlpha = 1;
+      if (pl.ring) {
+        ctx.fillStyle = pl.accent;
+        ctx.fillRect(cxp - pl.r - 14, cyp - 1, (pl.r + 14) * 2, 2);
+      }
+    }
+
+    if (dim.clouds) {
+      for (i = 0; i < clouds.length; i++) {
+        var c = clouds[i];
+        c.x += c.s * dt;
+        px = c.x - cam.x * c.p; py = c.y - cam.y * c.p;
+        span = bw + 800;
+        px = ((px % span) + span) % span - 400;
+        if (py < -200 || py > bh + 200) continue;
+        P.cloud(ctx, px, py, c.w, c.h, 0.55 + c.p);
+      }
+    }
+
+    /* a coloured wash so the forge glows and the nebula shimmers */
+    if (dim.glow) {
+      ctx.globalAlpha = 0.12;
+      ctx.fillStyle = dim.glow;
+      ctx.fillRect(0, 0, bw, bh);
+      ctx.globalAlpha = 1;
     }
   }
 
   function drawCaveBg(layer) {
-    var L = D.LAYERS[layer];
+    var L = S.layer(layer);
     var grad = ctx.createLinearGradient(0, 0, 0, bh);
     grad.addColorStop(0, U.shade(L.wall, -30));
     grad.addColorStop(1, '#070a0e');
@@ -443,7 +549,7 @@
   }
 
   function drawDarkness(layer, player, ox, oy) {
-    var L = D.LAYERS[layer];
+    var L = S.layer(layer);
     var lamp = S.derive().light;
     var radius = 90 + lamp * 150;
     var dark = U.clamp(1 - L.light - lamp * 0.35, 0, 0.82);
@@ -476,7 +582,7 @@
 
     var ox = offX() + shakeX, oy = offY() + shakeY;
 
-    if (layer === 0) { drawSky(dt); drawIslandBody(ox, oy); }
+    if (layer === 0) { drawSky(dt, t); drawIslandBody(ox, oy); }
     else { drawCaveBg(layer); drawCaveShell(ox, oy, layer); }
 
     drawTiles(ox, oy, layer);

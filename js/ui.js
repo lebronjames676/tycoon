@@ -98,7 +98,7 @@
     dom.bag.textContent = U.fmt(carried) + ' / ' + U.fmt(d.capacity);
     dom.bagFill.style.width = U.clamp(carried / d.capacity * 100, 0, 100) + '%';
     dom.bagStat.classList.toggle('full', carried >= d.capacity);
-    dom.depth.textContent = D.LAYERS[g.layer].name;
+    dom.depth.textContent = S.layer(g.layer).name;
 
     var pw = S.power();
     dom.power.textContent = pw.supply + ' / ' + pw.demand;
@@ -246,7 +246,7 @@
 
     var html = '<div class="note">' + note + '<br>Capacity <b>' + U.fmt(carried) + ' / ' +
       U.fmt(d.capacity) + '</b> &middot; Sale multiplier <b>x' + d.valueMult.toFixed(2) +
-      '</b> &middot; Depth bonus <b>x' + D.LAYERS[g.deepest].valMult.toFixed(2) + '</b>' +
+      '</b> &middot; Depth bonus <b>x' + S.layer(g.deepest).valMult.toFixed(2) + '</b>' +
       (S.storageCap() > 0 ? '<br>Warehouse <b>' + U.fmt(S.stored()) + ' / ' +
         U.fmt(S.storageCap()) + '</b> - ore marked <b>kept</b> is never sold automatically.' : '') +
       '</div>';
@@ -257,7 +257,9 @@
       html += '<div class="section" style="margin-top:12px"><div class="row">' +
         '<span class="grow">Sellable value' + (ratio < 1 ? ' (after fee)' : '') + '</span>' +
         '<span class="num">' + U.fmtMoney(total * ratio) + '</span></div></div>' +
-        '<button class="btn" data-act="sellAll" style="width:100%;padding:11px">SELL EVERYTHING</button>';
+        '<button class="btn" data-act="sellAll" style="width:100%;padding:11px;' +
+        'background:var(--teal-dk);border-color:var(--teal);color:#fff">SELL EVERYTHING &middot; ' +
+        U.fmtMoney(total * ratio) + '</button>';
     }
     return { title: 'Bag', html: html };
   };
@@ -409,24 +411,64 @@
      --------------------------------------------------------- */
   RENDER.depths = function () {
     var g = S.get();
-    var html = '<div class="note">Ride the mineshaft with <span class="kbd">E</span> to go down and ' +
+    var here = S.dim();
+
+    /* ---- dimensions ---- */
+    var html = '<div class="section"><h4>Dimensions</h4>' +
+      '<div class="note">Your shard can fly. Each dimension has its own ore, its own rock and its ' +
+      'own rules - and each is unlocked purely by how many times you have rebirthed. ' +
+      'You must be on the surface to travel.</div><div class="grid">';
+
+    D.DIMENSIONS.forEach(function (dm, i) {
+      var unlocked = S.dimUnlocked(i);
+      var current = i === g.dim;
+      var value = S.dimAvgValue(i), hp = S.dimAvgHp(i);
+      var ratio = value / Math.max(1, S.dimAvgValue(0));
+      var onSurface = g.layer === 0;
+
+      html += card({
+        name: dm.name,
+        tag: current ? 'YOU ARE HERE' : (unlocked ? 'OPEN' : dm.rebirths + ' REBIRTHS'),
+        tagLock: !unlocked,
+        owned: unlocked && !current,
+        desc: U.esc(dm.tagline) + '<br><b style="color:var(--teal)">' + U.esc(dm.twist) + '</b>',
+        req: 'Average ore <b>' + U.fmtMoney(value) + '</b>' +
+          (i > 0 ? ' (x' + U.fmt(ratio) + ' home)' : '') +
+          '<br>Average rock <b>' + U.fmt(hp) + ' hp</b>',
+        price: unlocked ? null : 'Rebirth ' + g.rebirths + ' / ' + dm.rebirths,
+        priceBad: !unlocked,
+        button: {
+          act: 'travelDim', data: { dim: i },
+          label: current ? 'CURRENT DIMENSION'
+            : (!unlocked ? 'LOCKED'
+              : (!onSurface ? 'SURFACE ONLY' : 'FLY THE SHARD HERE')),
+          disabled: current || !unlocked || !onSurface
+        }
+      });
+    });
+    html += '</div></div>';
+
+    /* ---- depth layers of the dimension we are in ---- */
+    html += '<div class="section"><h4>Depths of ' + U.esc(here.name) + '</h4>' +
+      '<div class="note">Ride the mineshaft with <span class="kbd">E</span> to go down and ' +
       '<span class="kbd">Q</span> to come back up. Deeper rock is tougher but pays far better, and your ' +
       'buildings always dig at your deepest unlocked layer.</div><div class="grid">';
 
-    D.LAYERS.forEach(function (L, i) {
+    for (var i = 0; i < D.LAYERS.length; i++) {
+      var L = S.layer(i);
       var unlocked = i < g.layersUnlocked;
       var isNext = i === g.layersUnlocked;
-      var here = i === g.layer;
-      var ores = D.ORES.filter(function (o) { return (o.w[i] || 0) > 0; })
-        .slice(-4).map(function (o) {
+      var atLayer = i === g.layer;
+      var ores = S.dimOres().filter(function (o) { return (o.w[L.index] || 0) > 0; })
+        .slice(-3).map(function (o) {
           return '<i class="dot" style="display:inline-block;background:' + o.color + '"></i> ' + o.name;
         }).join(' ');
 
       html += card({
         name: L.name,
-        tag: here ? 'YOU ARE HERE' : (unlocked ? 'OPEN' : 'SEALED'),
+        tag: atLayer ? 'YOU ARE HERE' : (unlocked ? 'OPEN' : 'SEALED'),
         tagLock: !unlocked,
-        owned: unlocked && !here,
+        owned: unlocked && !atLayer,
         desc: 'Rock toughness <b style="color:var(--text)">x' + L.hpMult.toFixed(1) + '</b> &middot; ' +
           'Ore value <b style="color:var(--text)">x' + L.valMult.toFixed(2) + '</b>',
         req: ores,
@@ -434,15 +476,16 @@
         priceBad: g.money < L.cost,
         button: unlocked ? {
           act: 'goLayer', data: { layer: i },
-          label: here ? 'CURRENT LAYER' : 'TRAVEL HERE', disabled: here
+          label: atLayer ? 'CURRENT LAYER' : 'TRAVEL HERE', disabled: atLayer
         } : {
           act: 'unlockLayer',
-          label: isNext ? (g.money >= L.cost ? 'BLAST IT OPEN' : 'NOT ENOUGH MONEY') : 'UNLOCK THE LAYER ABOVE FIRST',
+          label: isNext ? (g.money >= L.cost ? 'BLAST IT OPEN' : 'NOT ENOUGH MONEY')
+                        : 'UNLOCK THE LAYER ABOVE FIRST',
           disabled: !isNext || g.money < L.cost
         }
       });
-    });
-    return { title: 'The Depths', html: html + '</div>' };
+    }
+    return { title: 'Travel', html: html + '</div></div>' };
   };
 
   /* ---------------------------------------------------------
@@ -772,6 +815,7 @@
     var html = '<div class="section"><h4>Controls</h4><div class="rows">' +
       '<div class="row"><span class="grow">Move</span><span><span class="kbd">W</span> <span class="kbd">A</span> <span class="kbd">S</span> <span class="kbd">D</span> or arrows</span></div>' +
       '<div class="row"><span class="grow">Swing the pickaxe</span><span><span class="kbd">SPACE</span> (hold) or click a rock</span></div>' +
+      '<div class="row"><span class="grow">Sell the whole bag at once</span><span><span class="kbd">F</span> or the SELL ALL button</span></div>' +
       '<div class="row"><span class="grow">Ride the shaft down / up</span><span><span class="kbd">E</span> / <span class="kbd">Q</span></span></div>' +
       '<div class="row"><span class="grow">Zoom</span><span><span class="kbd">-</span> <span class="kbd">+</span> or scroll wheel</span></div>' +
       '<div class="row"><span class="grow">Panels</span><span><span class="kbd">I</span> <span class="kbd">C</span> <span class="kbd">B</span> <span class="kbd">K</span> <span class="kbd">X</span> <span class="kbd">V</span> <span class="kbd">J</span> <span class="kbd">R</span> <span class="kbd">T</span></span></div>' +
@@ -786,6 +830,7 @@
       '<div class="note"><b>4. Build.</b> Huts, drills and rigs mine for you day and night. Generators keep them powered, conveyors sell the ore, smelters and vaults raise the price.</div>' +
       '<div class="note"><b>5. Expand.</b> A wider island carries more ore veins and more machines.</div>' +
       '<div class="note"><b>6. Dig deeper.</b> Each layer multiplies both rock toughness and ore value. Your buildings always work the deepest layer you own.</div>' +
+      '<div class="note"><b>6b. Fly somewhere new.</b> Rebirth milestones unlock dimensions - the Moon, the Asteroid Belt, the Solar Forge, Nebula Reach and finally The Singularity. Each has its own ore, its own rock and its own rules. Stand on the surface and open Travel, or step on the warp gate and press <span class="kbd">E</span>.</div>' +
       '<div class="note"><b>7. Rebirth.</b> When a life has earned enough, trade it all for Prestige Cores and permanent perks. The next run is far faster.</div>' +
       '</div>';
 
@@ -842,7 +887,7 @@
     },
 
     unlockLayer: function () {
-      var name = D.LAYERS[S.get().layersUnlocked] && D.LAYERS[S.get().layersUnlocked].name;
+      var name = S.get().layersUnlocked < D.LAYERS.length ? S.layer(S.get().layersUnlocked).name : '';
       if (W.unlockLayer()) {
         UI.toast('Blasted through to the ' + name + '!', 'epic');
         Game.sfx('build');
@@ -856,8 +901,17 @@
       W.changeLayer(U.clamp(target, 0, g.layersUnlocked - 1) - g.layer);
       PL.init();
       UI.close();
-      UI.toast('Now in the ' + D.LAYERS[g.layer].name);
+      UI.toast('Now in the ' + S.layer(g.layer).name);
       Game.sfx('travel');
+    },
+
+    travelDim: function (data) {
+      var i = parseInt(data.dim, 10);
+      var dm = D.DIMENSIONS[i];
+      if (!S.dimUnlocked(i)) { UI.toast('Rebirth ' + dm.rebirths + ' times to reach ' + dm.name, 'bad'); return; }
+      if (S.get().layer !== 0) { UI.toast('Ride the shaft up to the surface first', 'bad'); return; }
+      if (!S.travel(i)) return;
+      Game.onTravel(dm);
     },
 
     buyPerk: function (data) {
