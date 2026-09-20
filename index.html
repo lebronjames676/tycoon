@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Sky Shard Tycoon</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%2358c8b6'/><rect y='8' width='16' height='4' fill='%23d79a6e'/><rect y='12' width='16' height='4' fill='%23929aa1'/></svg>">
+</head>
+<body>
+
+<div id="game">
+  <canvas id="world"></canvas>
+
+  <!-- ===== Top status bar ===== -->
+  <header id="topbar">
+    <div class="stat money"  title="Money">
+      <span class="ico">$</span><span id="statMoney">0</span>
+    </div>
+    <div class="stat bag" id="bagStat" title="Carried ore / capacity">
+      <span class="ico">&#9635;</span><span id="statBag">0 / 25</span>
+      <div class="bagfill"><i id="bagFill"></i></div>
+    </div>
+    <div class="stat depth" title="Current depth">
+      <span class="ico">&#9660;</span><span id="statDepth">Surface</span>
+    </div>
+    <div class="stat power" title="Power supply / demand">
+      <span class="ico">&#9889;</span><span id="statPower">0 / 0</span>
+    </div>
+    <div class="stat core" title="Prestige cores">
+      <span class="ico">&#10022;</span><span id="statCores">0</span>
+    </div>
+    <div class="stat lvl" title="Mining level">
+      <span class="ico">&#9874;</span><span id="statLevel">Lv 1</span>
+      <div class="xpbar"><i id="xpFill"></i></div>
+    </div>
+  </header>
+
+  <!-- ===== Side menu ===== -->
+  <nav id="menu">
+    <button data-panel="inventory"><b>I</b><span>Bag</span></button>
+    <button data-panel="craft"><b>C</b><span>Craft</span></button>
+    <button data-panel="build"><b>B</b><span>Build</span></button>
+    <button data-panel="island"><b>X</b><span>Island</span></button>
+    <button data-panel="depths"><b>V</b><span>Depths</span></button>
+    <button data-panel="contracts"><b>J</b><span>Jobs</span></button>
+    <button data-panel="rebirth"><b>R</b><span>Rebirth</span></button>
+    <button data-panel="stats"><b>T</b><span>Stats</span></button>
+    <button data-panel="help"><b>?</b><span>Help</span></button>
+  </nav>
+
+  <!-- ===== Action bar ===== -->
+  <footer id="actionbar">
+    <div class="slots" id="equipSlots"></div>
+    <div class="hint" id="contextHint">Walk with WASD &nbsp;|&nbsp; Hold SPACE near a rock to mine</div>
+    <div class="quick">
+      <button id="btnAutoMine" class="toggle on" title="Auto swing when next to ore">AUTO&nbsp;MINE</button>
+      <button id="btnBuildMode" class="toggle" title="Place buildings on the island">BUILD</button>
+      <button id="btnSave" title="Save now">SAVE</button>
+    </div>
+  </footer>
+
+  <!-- ===== Mobile D-pad ===== -->
+  <div id="touchpad" class="hidden">
+    <div class="dpad">
+      <button data-dir="up">&#9650;</button>
+      <button data-dir="left">&#9664;</button>
+      <button data-dir="right">&#9654;</button>
+      <button data-dir="down">&#9660;</button>
+    </div>
+    <button class="mineBtn" data-act="mine">MINE</button>
+    <button class="useBtn" data-act="use">USE</button>
+  </div>
+
+  <!-- ===== Panels ===== -->
+  <div id="overlay" class="hidden">
+    <section class="panel" id="panel">
+      <header>
+        <h2 id="panelTitle">Panel</h2>
+        <button id="panelClose">&#10005;</button>
+      </header>
+      <div id="panelBody"></div>
+    </section>
+  </div>
+
+  <div id="toasts"></div>
+
+  <div id="splash">
+    <div class="splashInner">
+      <h1>SKY<span>SHARD</span></h1>
+      <p class="tag">a floating island mining tycoon</p>
+      <div class="splashBtns">
+        <button id="btnPlay">PLAY</button>
+        <button id="btnWipe" class="ghost">NEW GAME</button>
+      </div>
+      <p class="ver">v1.0 &middot; progress saves to this browser</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/util.js"></script>
+<script src="js/data.js"></script>
+<script src="js/state.js"></script>
+<script src="js/world.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/render.js"></script>
+<script src="js/player.js"></script>
+<script src="js/economy.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
